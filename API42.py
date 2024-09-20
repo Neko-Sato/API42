@@ -17,7 +17,6 @@ class Credential:
 	async def refresh(self) -> None:
 		raise NotImplementedError
 	async def get_toekn(self) -> str:
-		print(self.created_at + self.expires_in, time.time())
 		if time.time() >= self.created_at + self.expires_in:
 			await self.refresh()
 		return f"{self.token_type} {self.access_token}"
