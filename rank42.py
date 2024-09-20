@@ -2,6 +2,7 @@ import asyncio
 import API42
 import os
 import calendar
+from math import ceil
 
 CAMPUSES = 26
 CURSUS = 9
@@ -10,17 +11,21 @@ MONTH = 9
 
 async def get_pisciners(credential:API42.Credential, campus:int, year:int, month:int) -> dict:
 	query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
-	users = {u["id"]:u["login"] for s in await asyncio.gather(*[
-			credential.get("/v2/users", {**query, "page[number]": i})
-		for i in range(1, 3)])
-		for u in s}
+	users = {}
+	i = 1
+	while True:
+		tmp = {u["id"]:u["login"] for u in await credential.get("/v2/users", {**query, "page[number]": i})}
+		users |= tmp
+		if len(tmp) < 100:
+			break
+		i += 1
 	return users
 
 async def get_level(credential:API42.Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
 	data = 	[(u["user"]["id"], u["level"]) for s in await asyncio.gather(*[
 			credential.get("/v2/cursus_users", {**query, "page[number]": i})
-		for i in range(1, 3)])
+		for i in range(1, ceil(len(users) / 100) + 1)])
 		for u in s]
 	return data
 
@@ -28,7 +33,7 @@ async def get_score(credential:API42.Credential, users:list[int], cursus:int) ->
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-this_year_score", "cursus_id": cursus, "page[size]": 100}
 	data = [(u["user_id"], u["score"]) for s in await asyncio.gather(*[
 			credential.get("/v2/coalitions_users", {**query, "page[number]": i})
-		for i in range(1, 3)])
+		for i in range(1, ceil(len(users) / 100) + 1)])
 		for u in s]
 	return data
 
