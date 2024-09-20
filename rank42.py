@@ -1,36 +1,38 @@
 import asyncio
 import API42
 import os
+import calendar
 
-async def get_level_rank(credential:API42.Credential) -> list:
-	query = {"cursus_id": 9, "filter[campus_id]": 26, "sort": "-level", "range[created_at]":"2024-08-20,now", "page[size]": 100}
-	users = [u for s in await asyncio.gather(
-		credential.get("/v2/cursus_users", {**query, "page[number]": 1}),
-		credential.get("/v2/cursus_users", {**query, "page[number]": 2})
-		) for u in s]
-	return [{"rank": i, "user_id": user["user"]["id"] , "login": user["user"]["login"], "level": user["level"]}
-		 for i, user in enumerate(users, 1)]
+CAMPUSES = 26
+CURSUS = 9
+YEAR = 2024
+MONTH = 9
 
-async def get_score_rank(credential:API42.Credential) -> dict:
-	query = {"filter[coalition_id]": "61,62,63", "sort": "-this_year_score", "range[created_at]":"2024-08-20,now", "page[size]": 100}
-	users = [u for s in await asyncio.gather(
-		credential.get("/v2/coalitions_users", {**query, "page[number]": 1}),
-		credential.get("/v2/coalitions_users", {**query, "page[number]": 2})
-		) for u in s]
-	query = {"filter[id]": ",".join([str(user["user_id"]) for user in users]), "page[size]": 100}
-	login = {i["id"]:i["login"] for s in await asyncio.gather(
-		credential.get("/v2/users", {**query, "page[number]": 1}),
-		credential.get("/v2/users", {**query, "page[number]": 2})
-		) for i in s}
-	return [{"rank": i, "login": login.get(user["user_id"], "Unknown"), "score": user["score"]}
-		 for i, user in enumerate(users, 1)]
+async def get_pisciners(credential:API42.Credential, campus:int, year:int, month:int) -> dict:
+	query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
+	users = {u["id"]:u["login"] for s in await asyncio.gather(*[
+			credential.get("/v2/users", {**query, "page[number]": i})
+		for i in range(1, 3)])
+		for u in s}
+	return users
 
-async def get_rank(credential:API42.Credential) -> tuple[list, list]:
-	# return await asyncio.gather(get_level_rank(credential), get_score_rank(credential))
-	# 効率的に取得しようと非同期にしたものの429エラーになりやがるからここは同期で取得する
-	return await get_level_rank(credential), await get_score_rank(credential)
+async def get_level(credential:API42.Credential, users:list[int], cursus:int) -> list:
+	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
+	data = 	[(u["user"]["id"], u["level"]) for s in await asyncio.gather(*[
+			credential.get("/v2/cursus_users", {**query, "page[number]": i})
+		for i in range(1, 3)])
+		for u in s]
+	return data
 
-async def main():
+async def get_score(credential:API42.Credential, users:list[int], cursus:int) -> list:
+	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-this_year_score", "cursus_id": cursus, "page[size]": 100}
+	data = [(u["user_id"], u["score"]) for s in await asyncio.gather(*[
+			credential.get("/v2/coalitions_users", {**query, "page[number]": i})
+		for i in range(1, 3)])
+		for u in s]
+	return data
+
+async def main() -> int:
 	client_id = os.getenv("API42_CLIENT_ID")
 	client_secret = os.getenv("API42_CLIENT_SECRET")
 	if not client_id or not client_secret:
@@ -38,12 +40,14 @@ async def main():
 		return 1
 	api = API42.API42(client_id, client_secret)
 	credential = await api.client_credential()
-	level_rank, score_rank = await get_rank(credential)
+	pisciners = await get_pisciners(credential, CAMPUSES, YEAR, MONTH)
 	print("level_rank")
-	for user in level_rank:
-		print(user["rank"], user["login"], user["level"])
+	for i, user in enumerate(await get_level(credential, list(pisciners.keys()), CURSUS), 1):
+		print(i, pisciners[user[0]], user[1])	
 	print("score_rank")
-	for user in score_rank:
-		print(user["rank"], user["login"], user["score"])
+	for i, user in enumerate(await get_score(credential, list(pisciners.keys()), CURSUS), 1):
+		print(i, pisciners[user[0]], user[1])
+	return 0
 
-asyncio.run(main())
+if __name__ == "__main__":
+	exit(asyncio.run(main()))

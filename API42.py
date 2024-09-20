@@ -64,16 +64,16 @@ class UserCredential(Credential):
 		async def handler(request: web.Request) -> web.Response:
 			state = request.query.get("state")
 			code = request.query.get("code")
+			text = "<script>window.close();</script>"
 			if code and _state == state:
 				_code.set_result(code)
-				text = "Sign In..."
+				text += "Sign In..."
 			else:
 				_code.set_exception(Exception())
-				text = "error"
-			return web.Response(text=text)
+				text += "error"
+			return web.Response(text=text, content_type='text/html')
 		app.add_routes([web.get("/", handler)])
-		server = asyncio.create_task(
-			web._run_app(app=app, host=host, port=port))
+		server = asyncio.create_task(web._run_app(app=app, host=host, port=port))
 		url = urlparse(f"{api.URL}/oauth/authorize")
 		query = {
 			"client_id": api.client_id,
@@ -89,6 +89,10 @@ class UserCredential(Credential):
 			code = await _code
 		finally:
 			server.cancel()
+			try:
+				await server
+			except asyncio.CancelledError:
+				pass
 		data = {
 			"grant_type": "authorization_code",
 			"client_id": api.client_id,
