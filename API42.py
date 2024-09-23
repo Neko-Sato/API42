@@ -4,6 +4,7 @@ from urllib.parse import urlparse, urlencode
 import uuid
 import webbrowser
 import time
+import calendar
 
 class Credential:
 	def __init__(self, api:'API42', access_token:str, token_type:str, expires_in:int, scope:str, created_at:int, secret_valid_until:int):
@@ -14,16 +15,27 @@ class Credential:
 		self.scope = scope
 		self.created_at = created_at
 		self.secret_valid_until = secret_valid_until
-	async def refresh(self) -> None:
+	async def __refresh(self) -> None:
 		raise NotImplementedError
-	async def get_toekn(self) -> str:
+	async def __get_toekn(self) -> str:
 		if time.time() >= self.created_at + self.expires_in:
-			await self.refresh()
+			await self.__refresh()
 		return f"{self.token_type} {self.access_token}"
+	async def get_pisciners(self, campus:int, year:int, month:int) -> dict:
+		query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
+		users = {}
+		i = 1
+		while True:
+			tmp = {u["id"]:u["login"] for u in await credential.get("/v2/users", {**query, "page[number]": i})}
+			users |= tmp
+			if len(tmp) < 100:
+				break
+			i += 1
+		return users
 	async def get(self, path:str, query:dict={}) -> dict:
 		async with ClientSession() as session:
 			headers = {
-				"Authorization": await self.get_toekn(),
+				"Authorization": await self.__get_toekn(),
 			}
 			async with session.get(f"{self.api.URL}{path}", headers=headers, params=query) as response:
 				return await response.json()

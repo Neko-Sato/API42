@@ -1,25 +1,12 @@
 import asyncio
 import API42
 import os
-import calendar
 from math import ceil
 
 CAMPUSES = 26
 CURSUS = 9
 YEAR = 2024
 MONTH = 9
-
-async def get_pisciners(credential:API42.Credential, campus:int, year:int, month:int) -> dict:
-	query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
-	users = {}
-	i = 1
-	while True:
-		tmp = {u["id"]:u["login"] for u in await credential.get("/v2/users", {**query, "page[number]": i})}
-		users |= tmp
-		if len(tmp) < 100:
-			break
-		i += 1
-	return users
 
 async def get_level(credential:API42.Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
@@ -45,7 +32,7 @@ async def main() -> int:
 		return 1
 	api = API42.API42(client_id, client_secret)
 	credential = await api.client_credential()
-	pisciners = await get_pisciners(credential, CAMPUSES, YEAR, MONTH)
+	pisciners = await credential.get_pisciners(CAMPUSES, YEAR, MONTH)
 	print("level_rank")
 	for i, user in enumerate(await get_level(credential, list(pisciners.keys()), CURSUS), 1):
 		print(i, pisciners[user[0]], user[1])	
