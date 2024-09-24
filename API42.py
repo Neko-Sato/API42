@@ -1,8 +1,9 @@
+#!/usr/bin/python3
 import asyncio
 from aiohttp import web, ClientSession
 from urllib.parse import urlparse, urlencode
 import uuid
-import webbrowser
+# import webbrowser
 import time
 import calendar
 
@@ -17,7 +18,7 @@ class Credential:
 		self.secret_valid_until = secret_valid_until
 	async def __refresh(self) -> None:
 		raise NotImplementedError
-	async def __get_toekn(self) -> str:
+	async def __get_token(self) -> str:
 		if time.time() >= self.created_at + self.expires_in:
 			await self.__refresh()
 		return f"{self.token_type} {self.access_token}"
@@ -26,7 +27,7 @@ class Credential:
 		users = {}
 		i = 1
 		while True:
-			tmp = {u["id"]:u["login"] for u in await credential.get("/v2/users", {**query, "page[number]": i})}
+			tmp = {u["id"]:u["login"] for u in await self.get("/v2/users", {**query, "page[number]": i})}
 			users |= tmp
 			if len(tmp) < 100:
 				break
@@ -35,7 +36,7 @@ class Credential:
 	async def get(self, path:str, query:dict={}) -> dict:
 		async with ClientSession() as session:
 			headers = {
-				"Authorization": await self.__get_toekn(),
+				"Authorization": await self.__get_token(),
 			}
 			async with session.get(f"{self.api.URL}{path}", headers=headers, params=query) as response:
 				return await response.json()
@@ -96,7 +97,7 @@ class UserCredential(Credential):
 		}
 		url = url._replace(query=urlencode(query)).geturl()
 		print(url)
-		webbrowser.open_new(url)
+		# webbrowser.open_new(url)
 		try:
 			code = await _code
 		finally:

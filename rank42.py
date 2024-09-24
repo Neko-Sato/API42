@@ -1,12 +1,14 @@
+#!/usr/bin/python3
 import asyncio
 import API42
 import os
 from math import ceil
 
-CAMPUSES = 26
-CURSUS = 9
+CAMPUSES_TOKYO = 26
+CURSUS_C_PISCINE = 9
+CURSUS_42_CURSUS = 21
 YEAR = 2024
-MONTH = 9
+MONTH = 8
 
 async def get_level(credential:API42.Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
@@ -24,6 +26,14 @@ async def get_score(credential:API42.Credential, users:list[int], cursus:int) ->
 		for u in s]
 	return data
 
+async def has_cursus(credential:API42.Credential, users:list[int], cursus:int) -> list:
+	query = {"filter[user_id]": ",".join([str(user) for user in users]), "cursus_id": cursus, "page[size]": 100}
+	data = 	[u["user"]["id"] for s in await asyncio.gather(*[
+			credential.get("/v2/cursus_users", {**query, "page[number]": i})
+		for i in range(1, ceil(len(users) / 100) + 1)])
+		for u in s]
+	return {user: user in data for user in users}
+
 async def main() -> int:
 	client_id = os.getenv("API42_CLIENT_ID")
 	client_secret = os.getenv("API42_CLIENT_SECRET")
@@ -32,13 +42,16 @@ async def main() -> int:
 		return 1
 	api = API42.API42(client_id, client_secret)
 	credential = await api.client_credential()
-	pisciners = await credential.get_pisciners(CAMPUSES, YEAR, MONTH)
+	pisciners = await credential.get_pisciners(CAMPUSES_TOKYO, YEAR, MONTH)
+	is_passed = await has_cursus(credential, pisciners.keys(), CURSUS_42_CURSUS)
+	level_rank = await get_level(credential, list(pisciners.keys()), CURSUS_C_PISCINE)
+	score_rank = await get_score(credential, list(pisciners.keys()), CURSUS_C_PISCINE)
 	print("level_rank")
-	for i, user in enumerate(await get_level(credential, list(pisciners.keys()), CURSUS), 1):
-		print(i, pisciners[user[0]], user[1])	
+	for i, (user_id, level) in enumerate(level_rank, 1):
+		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", level)
 	print("score_rank")
-	for i, user in enumerate(await get_score(credential, list(pisciners.keys()), CURSUS), 1):
-		print(i, pisciners[user[0]], user[1])
+	for i, (user_id, score) in enumerate(score_rank, 1):
+		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", score)
 	return 0
 
 if __name__ == "__main__":
