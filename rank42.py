@@ -1,12 +1,37 @@
 #!/usr/bin/python3
 import asyncio
 import API42
-import os
 from math import ceil
 
-CAMPUSES_TOKYO = 26
+CAMPUS_TOKYO = 26
 CURSUS_C_PISCINE = 9
 CURSUS_42_CURSUS = 21
+class PROJECTS_C_PISCINE:
+	shell_00 = 1255
+	shell_01 = 1256
+	c_12 = 1268
+	c_13 = 1271
+	c_11 = 1267
+	c_10 = 1266
+	c_09 = 1265
+	c_07 = 1270
+	c_08 = 1264
+	c_06 = 1263
+	c_05 = 1262
+	c_04 = 1261
+	c_03 = 1260
+	c_02 = 1259
+	c_01 = 1258
+	c_00 = 1257
+	bsq = 1305
+	rush_02 = 1309
+	rush_01 = 1310
+	rush_00 = 1308
+	final_exam = 1304
+	exam_02 = 1303
+	exam_01 = 1302
+	exam_00 = 1301
+
 YEAR = 2024
 MONTH = 9
 
@@ -34,7 +59,7 @@ async def has_cursus(credential:API42.Credential, users:list[int], cursus:int) -
 		for u in s]
 	return {user: user in data for user in users}
 
-async def get_project_rank(credential:API42.Credential, users:list[int], project:int) -> list:
+async def get_project_mark(credential:API42.Credential, users:list[int], project:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "filter[marked]": "true", "filter[project_id]": project, "page[size]": 100}
 	data = 	{u["user"]["id"]:u["final_mark"] for s in await asyncio.gather(*[
 			credential.get("/v2/projects_users", {**query, "page[number]": i})
@@ -43,23 +68,24 @@ async def get_project_rank(credential:API42.Credential, users:list[int], project
 	return sorted(data.items(), key=lambda x: x[1], reverse=True)
 
 async def main() -> int:
-	client_id = os.getenv("API42_CLIENT_ID")
-	client_secret = os.getenv("API42_CLIENT_SECRET")
-	if not client_id or not client_secret:
-		print("Please set API42_CLIENT_ID and API42_CLIENT_SECRET")
-		return 1
-	api = API42.API42(client_id, client_secret)
+	api = await API42.make_api_flow()
 	credential = await api.client_credential()
-	pisciners = await credential.get_pisciners(CAMPUSES_TOKYO, YEAR, MONTH)
-	is_passed = await has_cursus(credential, pisciners.keys(), CURSUS_42_CURSUS)
-	level_rank = await get_level(credential, pisciners.keys(), CURSUS_C_PISCINE)
+	pisciners = await credential.get_pisciners(CAMPUS_TOKYO, YEAR, MONTH)
+	is_passed, level_rank, score_rank, exam_rank = await asyncio.gather(
+		has_cursus(credential, pisciners.keys(), CURSUS_42_CURSUS),
+		get_level(credential, pisciners.keys(), CURSUS_C_PISCINE),
+		get_score(credential, pisciners.keys(), CURSUS_C_PISCINE),
+		get_project_mark(credential, pisciners.keys(), PROJECTS_C_PISCINE.exam_02),
+	)
 	print("level_rank")
 	for i, (user_id, level) in enumerate(level_rank, 1):
 		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", level)
-	score_rank = await get_score(credential, pisciners.keys(), CURSUS_C_PISCINE)
 	print("score_rank")
 	for i, (user_id, score) in enumerate(score_rank, 1):
 		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", score)
+	print("exam_rank")
+	for i, (user_id, mark) in enumerate(exam_rank, 1):
+		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", mark)
 	return 0
 
 if __name__ == "__main__":
