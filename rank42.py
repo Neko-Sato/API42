@@ -2,6 +2,7 @@
 import asyncio
 import API42
 from math import ceil
+import sys
 
 CAMPUS_TOKYO = 26
 CURSUS_C_PISCINE = 9
@@ -67,16 +68,36 @@ async def get_project_mark(credential:API42.Credential, users:list[int], project
 		for u in s}
 	return sorted(data.items(), key=lambda x: x[1], reverse=True)
 
+async def put_waiting(message:str, waitable):
+	if asyncio.isfuture(waitable):
+		task = waitable
+	else:
+		task = asyncio.create_task(waitable)
+	try:
+		while not task.done():
+			for symbol in ['|', '/', '-', '\\']:
+				sys.stdout.write(f'\r{message} {symbol}')
+				sys.stdout.flush()
+				await asyncio.sleep(0.1)
+		sys.stdout.write(f'\r{message} OK\n')
+		sys.stdout.flush()
+	except asyncio.CancelledError:
+		task.cancel()
+	return await task
+	
 async def main() -> int:
 	api = await API42.make_api_flow()
 	credential = await api.client_credential()
-	pisciners = await credential.get_pisciners(CAMPUS_TOKYO, YEAR, MONTH)
-	is_passed, level_rank, score_rank, exam_rank = await asyncio.gather(
+	pisciners = {k:v for s in await put_waiting("Getting pisciners", asyncio.gather(
+		credential.get_pisciners(CAMPUS_TOKYO, YEAR, 8),
+		credential.get_pisciners(CAMPUS_TOKYO, YEAR, 9),
+	)) for k, v in s.items()}
+	is_passed, level_rank, score_rank, exam_rank = await put_waiting("Please wait", asyncio.gather(
 		has_cursus(credential, pisciners.keys(), CURSUS_42_CURSUS),
 		get_level(credential, pisciners.keys(), CURSUS_C_PISCINE),
 		get_score(credential, pisciners.keys(), CURSUS_C_PISCINE),
-		get_project_mark(credential, pisciners.keys(), PROJECTS_C_PISCINE.exam_02),
-	)
+		get_project_mark(credential, pisciners.keys(), PROJECTS_C_PISCINE.final_exam),
+	))
 	print("level_rank")
 	for i, (user_id, level) in enumerate(level_rank, 1):
 		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", level)

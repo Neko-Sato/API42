@@ -11,7 +11,7 @@ import os
 
 class API42:
 	URL = "https://api.intra.42.fr"
-	DELAY = 0.5
+	DELAY = 2
 	def __init__(self, client_id: str, client_secret: str, *, loop: asyncio.AbstractEventLoop = None):
 		self._client_id = client_id
 		self._client_secret = client_secret
@@ -25,8 +25,9 @@ class API42:
 		future = asyncio.Future()
 		request = httpx.Request(method, self.URL + path, **kwargs)
 		await self._queue.put((future, request))
-		task = await future
-		return (await task).json()
+		task:asyncio.Future = await future
+		content:httpx.Response = await task
+		return content.json()
 	async def _worker(self) -> None:
 		async with httpx.AsyncClient() as client:
 			while self._active:
