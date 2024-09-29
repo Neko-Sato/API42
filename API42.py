@@ -1,13 +1,14 @@
 #!/usr/bin/python3
 import asyncio
-import httpx
-from urllib.parse import urlparse, urlencode
-import uvicorn
-import fastapi
 import uuid
 import time
 import calendar
 import os
+import httpx
+import uvicorn
+import fastapi
+from urllib.parse import urlparse, urlencode
+import webbrowser
 
 class API42:
 	URL = "https://api.intra.42.fr"
@@ -127,6 +128,7 @@ class UserCredential(Credential):
 			}
 		url = urlparse(f"{api.URL}/oauth/authorize")._replace(query=urlencode(query)).geturl()
 		print(url)
+		webbrowser.open_new(url)
 		try:
 			code = await _code
 		finally:
