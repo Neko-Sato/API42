@@ -70,13 +70,14 @@ async def put_waiting(message:str, waitable):
 		task = waitable
 	else:
 		task = asyncio.create_task(waitable)
+	sys.stdout.write(f'\r{message}  ')
 	try:
 		while not task.done():
 			for symbol in ['|', '/', '-', '\\']:
-				sys.stdout.write(f'\r{message} {symbol}')
+				sys.stdout.write(f'\b{symbol}')
 				sys.stdout.flush()
 				await asyncio.sleep(0.1)
-		sys.stdout.write(f'\r{message} OK\n')
+		sys.stdout.write(f'\bOK\n')
 		sys.stdout.flush()
 	except asyncio.CancelledError:
 		task.cancel()
@@ -104,6 +105,7 @@ async def main() -> int:
 	print("exam_rank")
 	for i, (user_id, mark) in enumerate(exam_rank, 1):
 		print(i, pisciners[user_id], "Passed" if is_passed[user_id] else "Failed", mark)
+	print(f"passed rate {sum(i for i in is_passed.values())}/{len(pisciners)}")
 	return 0
 
 if __name__ == "__main__":
