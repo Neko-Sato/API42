@@ -33,9 +33,6 @@ class PROJECTS_C_PISCINE:
 	exam_01 = 1302
 	exam_00 = 1301
 
-YEAR = 2024
-MONTH = 9
-
 async def get_level(credential:API42.Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
 	data = 	[(u["user"]["id"], u["level"]) for s in await asyncio.gather(*[
@@ -89,8 +86,8 @@ async def main() -> int:
 	api = await API42.make_api_flow()
 	credential = await api.client_credential()
 	pisciners = {k:v for s in await put_waiting("Getting pisciners", asyncio.gather(
-		credential.get_pisciners(CAMPUS_TOKYO, YEAR, 8),
-		credential.get_pisciners(CAMPUS_TOKYO, YEAR, 9),
+		credential.get_pisciners(CAMPUS_TOKYO, 2024, 8),
+		credential.get_pisciners(CAMPUS_TOKYO, 2024, 9),
 	)) for k, v in s.items()}
 	is_passed, level_rank, score_rank, exam_rank = await put_waiting("Please wait", asyncio.gather(
 		has_cursus(credential, pisciners.keys(), CURSUS_42_CURSUS),

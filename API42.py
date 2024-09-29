@@ -92,7 +92,7 @@ class ClientCredential(Credential):
 			"client_id": api._client_id,
 			"client_secret": api._client_secret,
 		}
-		return cls(api, **await api.request("POST", "/oauth/token", data=data))
+		return cls(api, **(await api.request("POST", "/oauth/token", data=data)).json())
 	async def _refresh(self) -> None:
 		tmp = await ClientCredential.create(self._api)
 		self._access_token = tmp._access_token
@@ -151,7 +151,7 @@ class UserCredential(Credential):
 			"code": await cls.get_code(api, scope, host, port),
 			"redirect_uri": f"http://{host}:{port}/",
 		}
-		return cls(api, **(await api.request("POST", "/oauth/token", data=data)))
+		return cls(api, **(await api.request("POST", "/oauth/token", data=data)).json())
 	async def _refresh(self) -> None:
 		data = {
 			"grant_type": "refresh_token",
