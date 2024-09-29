@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from typing import Any, Optional
 import asyncio
 import uuid
 import time
@@ -22,13 +23,15 @@ class API42:
 		self._active = True
 		self._queue = asyncio.Queue()
 		self._loop.create_task(self._worker())
-	async def request(self, method: str, path: str, **kwargs) -> dict:
+	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
 		future = asyncio.Future()
 		request = httpx.Request(method, self.URL + path, **kwargs)
 		await self._queue.put((future, request))
 		task:asyncio.Future = await future
-		content:httpx.Response = await task
-		return content.json()
+		response:httpx.Response = await task
+		if response.status_code != 200:
+			raise Exception(f"Error {response.status_code}: {response.text}")
+		return response
 	async def _worker(self) -> None:
 		async with httpx.AsyncClient() as client:
 			while self._active:
@@ -60,10 +63,12 @@ class Credential:
 		if time.time() >= self._created_at + self._expires_in:
 			await self._refresh()
 		return f"{self._token_type} {self._access_token}"
-	async def request(self, method: str, path: str, headers:dict = {}, **kwargs) -> dict:
+	async def _request(self, method: str, path: str, headers:dict = {}, **kwargs) -> httpx.Response:
 		headers["Authorization"] = await self._get_token()
 		return await self._api.request(method, path, headers=headers, **kwargs)
-	async def get(self, path: str, query: dict = {}) -> dict:
+	async def request(self, method: str, path: str, **kwargs) -> Any:
+		return (await self._request(method, path, **kwargs)).json()
+	async def get(self, path: str, query: dict = {}) -> Any:
 		return await self.request("GET", path, params=query)
 	async def get_pisciners(self, campus: int, year: int, month: int) -> dict:
 		query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
