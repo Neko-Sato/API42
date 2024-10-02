@@ -24,6 +24,7 @@ export API42_CLIENT_ID=[YOUR_CLIENT_ID]
 export API42_CLIENT_SECRET=[YOUR_CLIENT_SECRET]
 ./get_pisciners.py
 ./rank.py pisciners_*.json
+cat rank.txt
 ```
 
 42 profile: https://profile.intra.42.fr/users/hshimizu
