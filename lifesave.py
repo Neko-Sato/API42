@@ -25,11 +25,11 @@ async def get_location(credential:Credential, users:list[int]) -> dict:
 		for u in s}
 	return data
 
-async def main(pisciners:dict[int, str], client_id:str=None, client_secret=None) -> int:
+async def main(pisciners:dict[int, str], cursus:int, client_id:str=None, client_secret=None) -> int:
 	api:API42 = await make_api_flow(client_id, client_secret)
 	credential = await api.client_credential()
 	level_rank, locations = await put_waiting("Please wait", asyncio.gather(
-		get_level(credential, pisciners.keys(), CURSUS_C_PISCINE),
+		get_level(credential, pisciners.keys(), cursus),
 		get_location(credential, pisciners.keys()),
 	))
 	for user_id, level in level_rank:
@@ -44,8 +44,9 @@ if __name__ == "__main__":
 
 	parser = argparse.ArgumentParser()
 	parser.add_argument("pisciners", type=argparse.FileType(), help="pisciners json file")
+	parser.add_argument("--cursus", type=int, default=CURSUS_C_PISCINE)
 	parser.add_argument("--client_id", type=str, default=None)
 	parser.add_argument("--client_secret", type=str, default=None)
 	args = parser.parse_args()
 	pisciners = {int(k):v for k, v in json.load(args.pisciners).items()}
-	exit(asyncio.run(main(pisciners, args.client_id, args.client_secret)))
+	exit(asyncio.run(main(pisciners, args.cursus, args.client_id, args.client_secret)))
