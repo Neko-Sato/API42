@@ -5,10 +5,9 @@ import sys
 T = TypeVar('T')
 
 async def put_waiting(message:str, waitable:Awaitable[T]) -> T:
-	if asyncio.isfuture(waitable):
-		task = waitable
-	else:
-		task = asyncio.create_task(waitable)
+	async def warper() -> T:
+		return await waitable 
+	task = asyncio.create_task(warper())
 	sys.stdout.write(f'\r{message}  ')
 	try:
 		while not task.done():
