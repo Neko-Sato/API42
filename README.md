@@ -16,4 +16,14 @@ I also have my own idea that pisciner should not be structured so that a lagging
 
 Let's help them enjoy piscine without rushing too much.
 
+```
+git clone https://github.com/Neko-Sato/API42.git
+cd API42
+pip insatll -r API42/requirements.txt
+export API42_CLIENT_ID=YOUR_CLIENT_ID
+export API42_CLIENT_SECRET=YOUR_CLIENT_SECRET
+./get_pisciners.py
+./rank.py pisciners_*.json
+```
+
 42 profile: https://profile.intra.42.fr/users/hshimizu
