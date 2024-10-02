@@ -28,14 +28,10 @@ async def get_location(credential:Credential, users:list[int]) -> dict:
 async def main(pisciners:dict[int, str], cursus:int, client_id:str=None, client_secret=None) -> int:
 	api:API42 = await make_api_flow(client_id, client_secret)
 	credential = await api.client_credential()
-	level_rank, locations = await put_waiting("Please wait", asyncio.gather(
-		get_level(credential, pisciners.keys(), cursus),
-		get_location(credential, pisciners.keys()),
-	))
+	locations =  await put_waiting("get location", get_location(credential, pisciners.keys()))
+	level_rank = await put_waiting("Please wait", get_level(credential, locations.keys(), cursus))
 	for user_id, level in level_rank:
-		location = locations.get(user_id)
-		if location:
-			print(int(level), pisciners[user_id], location)
+		print(int(level), pisciners[user_id], locations[user_id])
 	return 0
 
 if __name__ == "__main__":
