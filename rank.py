@@ -97,6 +97,5 @@ if __name__ == "__main__":
 	parser.add_argument("--client_id", type=str, default=None)
 	parser.add_argument("--client_secret", type=str, default=None)
 	args = parser.parse_args()
-	print(args)
 	pisciners = {int(k):v for tmp in args.pisciners for k, v in json.load(tmp).items()}
 	exit(asyncio.run(main(pisciners, args.passed, args.client_id, args.client_secret)))
