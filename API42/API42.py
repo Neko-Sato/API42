@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from typing import Any, Optional
+from typing import Any
 import asyncio
 import uuid
 import time
@@ -23,6 +23,8 @@ class API42:
 		self._active = True
 		self._queue = asyncio.Queue()
 		self._loop.create_task(self._worker())
+	def __del__(self):
+		self._active = False
 	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
 		future = asyncio.Future()
 		request = httpx.Request(method, self.URL + path, **kwargs)
@@ -70,17 +72,6 @@ class Credential:
 		return (await self._request(method, path, **kwargs)).json()
 	async def get(self, path: str, query: dict = {}) -> Any:
 		return await self.request("GET", path, params=query)
-	async def get_pisciners(self, campus: int, year: int, month: int) -> dict:
-		query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
-		users = {}
-		i = 1
-		while True:
-			tmp = {u["id"]: u["login"] for u in await self.get("/v2/users", {**query, "page[number]": i})}
-			users.update(tmp)
-			if len(tmp) < 100:
-				break
-			i += 1
-		return users
 
 class ClientCredential(Credential):
 	def __init__(self, api: API42, access_token: str, token_type: str, expires_in: int, scope: str, created_at: int, secret_valid_until: int):
@@ -168,10 +159,21 @@ class UserCredential(Credential):
 	async def me(self) -> dict:
 		return await self.get("/v2/me")
 
-async def make_api_flow() -> API42:
-	client_id = os.getenv("API42_CLIENT_ID")
-	client_secret = os.getenv("API42_CLIENT_SECRET")
-	if not client_id or not client_secret:
-		client_id = input("Client ID: ")
-		client_secret = input("Client Secret: ")
+async def make_api_flow(client_id:str=None, client_secret:str=None) -> API42:
+	if client_id is None or client_secret is None:
+		client_id = os.getenv("API42_CLIENT_ID")
+		client_secret = os.getenv("API42_CLIENT_SECRET")
+	if client_id is None or client_secret is None:
+		while True:
+			try:
+				client_id = input("Client ID: ")
+				break
+			except KeyboardInterrupt:
+				print()
+		while True:
+			try:
+				client_secret = input("Client Secret: ")
+				break
+			except KeyboardInterrupt:
+				print()
 	return API42(client_id, client_secret)
