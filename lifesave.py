@@ -35,14 +35,21 @@ async def main(pisciners:dict[int, str], cursus:int, client_id:str=None, client_
 	return 0
 
 if __name__ == "__main__":
+	from datetime import datetime
 	import argparse
 	import json
 
 	parser = argparse.ArgumentParser()
-	parser.add_argument("pisciners", type=argparse.FileType(), help="pisciners json file")
 	parser.add_argument("--cursus", type=int, default=CURSUS_C_PISCINE)
 	parser.add_argument("--client_id", type=str, default=None)
 	parser.add_argument("--client_secret", type=str, default=None)
 	args = parser.parse_args()
-	pisciners = {int(k):v for k, v in json.load(args.pisciners).items()}
-	exit(asyncio.run(main(pisciners, args.cursus, args.client_id, args.client_secret)))
+	try:
+		now = datetime.now()
+		with open(f"pisciners_{now.year}_{now.month}.json", "r") as f:
+			pisciners = {int(k):v for k, v in json.load(f).items()}
+		status = asyncio.run(main(pisciners, args.cursus, args.client_id, args.client_secret))
+	except FileNotFoundError:
+		print("Please run get_pisciners.py first.")
+		status = 1
+	exit(status)
