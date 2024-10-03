@@ -13,35 +13,19 @@ import webbrowser
 
 class API42:
 	URL = "https://api.intra.42.fr"
-	DELAY = 2
-	def __init__(self, client_id: str, client_secret: str, *, loop: asyncio.AbstractEventLoop = None):
+	DELAY = 1
+	def __init__(self, client_id: str, client_secret: str):
 		self._client_id = client_id
 		self._client_secret = client_secret
-		if loop is None:
-			loop = asyncio.get_event_loop()
-		self._loop = loop
-		self._active = True
-		self._queue = asyncio.Queue()
-		self._loop.create_task(self._worker())
-	def __del__(self):
-		self._active = False
+		self._lock = asyncio.Lock()
 	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
-		future = asyncio.Future()
-		request = httpx.Request(method, self.URL + path, **kwargs)
-		await self._queue.put((future, request))
-		task:asyncio.Future = await future
-		response:httpx.Response = await task
-		if response.status_code != 200:
-			raise Exception(f"Error {response.status_code}: {response.text}")
-		return response
-	async def _worker(self) -> None:
+		loop = asyncio.get_event_loop()
+		await self._lock.acquire()
 		async with httpx.AsyncClient() as client:
-			while self._active:
-				future: asyncio.Future
-				request: httpx.Request
-				future, request = await self._queue.get()
-				future.set_result(self._loop.create_task(client.send(request)))
-				await asyncio.sleep(self.DELAY)
+			request = httpx.Request(method, self.URL + path, **kwargs)
+			task = loop.create_task(client.send(request))
+			loop.call_later(self.DELAY, self._lock.release)
+			return await task
 	async def client_credential(self) -> 'ClientCredential':
 		return await ClientCredential.create(self)
 	async def user_credential(self) -> 'UserCredential':
