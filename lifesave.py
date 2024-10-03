@@ -29,7 +29,7 @@ async def main(pisciners:dict[int, str], cursus:int, client_id:str=None, client_
 	api:API42 = await make_api_flow(client_id, client_secret)
 	credential = await api.client_credential()
 	locations =  await put_waiting("get location", get_location(credential, pisciners.keys()))
-	level_rank = await put_waiting("Please wait", get_level(credential, locations.keys(), cursus))
+	level_rank = await put_waiting("sorting level", get_level(credential, locations.keys(), cursus))
 	for user_id, level in level_rank:
 		print(int(level), pisciners[user_id], locations[user_id])
 	return 0
