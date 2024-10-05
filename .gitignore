@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+pisciners_*.json
+rank.txt
