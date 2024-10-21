@@ -57,7 +57,7 @@ async def main(pisciners:dict[int, str], passed:bool, client_id:str=None, client
 		for i, (user_id, score) in enumerate(score_rank, 1):
 			f.write(f"{i}\t: {pisciners[user_id]} ")
 			if passed:
-				f.write("Passed" if is_passed[user_id] else "Failed" + " ")
+				f.write(("Passed" if is_passed[user_id] else "Failed") + " ")
 			f.write(f"{score}\n")
 	return 0
 
