@@ -25,16 +25,20 @@ class API42:
 		async with httpx.AsyncClient() as client:
 			request: httpx.Response
 			future: asyncio.Future
-			request, future = await self._queue.get()
 			while True:
-				try:
-					future.set_result(await client.send(request))
-				except httpx.ConnectTimeout:
-					pass
-				else:
-					request, future = await self._queue.get()
-				finally:	
-					await asyncio.sleep(self.DELAY)
+				request, future = await self._queue.get()
+				while True:
+					try:
+						future.set_result(await client.send(request))
+					except httpx.ConnectTimeout:
+						continue
+					except Exception as e:
+						future.set_exception(e)
+						break
+					else:
+						break
+					finally:
+						await asyncio.sleep(self.DELAY)
 	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
 		request = httpx.Request(method, self.URL + path, **kwargs)
 		future = asyncio.Future()
