@@ -17,15 +17,29 @@ class API42:
 	def __init__(self, client_id: str, client_secret: str):
 		self._client_id = client_id
 		self._client_secret = client_secret
-		self._lock = asyncio.Lock()
-	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
-		loop = asyncio.get_event_loop()
-		await self._lock.acquire()
+		self._queue = asyncio.Queue()
+		self._worker_task = asyncio.create_task(self._worker())
+	def __del__(self):
+		self._worker_task.cancel()
+	async def _worker(self) -> None:
 		async with httpx.AsyncClient() as client:
-			request = httpx.Request(method, self.URL + path, **kwargs)
-			task = loop.create_task(client.send(request))
-			loop.call_later(self.DELAY, self._lock.release)
-			return await task
+			request: httpx.Response
+			future: asyncio.Future
+			request, future = await self._queue.get()
+			while True:
+				try:
+					future.set_result(await client.send(request))
+				except httpx.ConnectTimeout:
+					pass
+				else:
+					request, future = await self._queue.get()
+				finally:	
+					await asyncio.sleep(self.DELAY)
+	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
+		request = httpx.Request(method, self.URL + path, **kwargs)
+		future = asyncio.Future()
+		await self._queue.put((request, future))
+		return await future
 	async def client_credential(self) -> 'ClientCredential':
 		return await ClientCredential.create(self)
 	async def user_credential(self) -> 'UserCredential':
