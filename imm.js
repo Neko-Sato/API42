@@ -94,3 +94,20 @@ const roate_progress_bar = (event) => {
 	document.removeEventListener('click', roate_progress_bar);
 };
 document.addEventListener('click', roate_progress_bar);
+
+document.querySelectorAll("a").forEach((x) => {x.href = "javascript:alert('🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ')"})
+
+window.onbeforeunload = function(event) {
+	const message = "🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ";
+	event.returnValue = message;
+	return message;
+};
+
+
+window.addEventListener('keydown', function(event) {
+	if ((event.key === 'F5') || (event.ctrlKey && event.key === 'r')) {
+	  event.preventDefault(); 
+	  alert('🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ');
+	}
+  });
+  
