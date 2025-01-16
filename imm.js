@@ -100,9 +100,9 @@ document.querySelectorAll("a").forEach((x) => {x.href = "javascript:alert('🐈�
 window.onbeforeunload = function(event) {
 	const message = "🐈ﾆｬｰﾝ🐈ﾆｬｰﾝ";
 	event.returnValue = message;
+	history.replaceState(null, '', '/404');
 	return message;
 };
-
 
 window.addEventListener('keydown', function(event) {
 	if ((event.key === 'F5') || (event.ctrlKey && event.key === 'r')) {
