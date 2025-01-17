@@ -1,15 +1,15 @@
 #!/usr/bin/python3
-from typing import Any
 import asyncio
 import uuid
-import time
-import calendar
 import os
+import time
 import httpx
 import uvicorn
 import fastapi
 from urllib.parse import urlparse, urlencode
 import webbrowser
+
+JsonType = dict[str, "JsonType"] | list["JsonType"] | str | int | float | bool | None
 
 class API42:
 	URL = "https://api.intra.42.fr"
@@ -22,23 +22,22 @@ class API42:
 	def __del__(self):
 		self._worker_task.cancel()
 	async def _worker(self) -> None:
-		async with httpx.AsyncClient() as client:
-			request: httpx.Response
-			future: asyncio.Future
-			while True:
-				request, future = await self._queue.get()
+		try:
+			async with httpx.AsyncClient() as client:
+				request: httpx.Response
+				future: asyncio.Future
 				while True:
+					request, future = await self._queue.get()
 					try:
 						future.set_result(await client.send(request))
 					except httpx.ConnectTimeout:
-						continue
+						await self._queue.put((request, future))
 					except Exception as e:
 						future.set_exception(e)
-						break
-					else:
-						break
 					finally:
 						await asyncio.sleep(self.DELAY)
+		except asyncio.CancelledError:
+			pass
 	async def request(self, method: str, path: str, **kwargs) -> httpx.Response:
 		request = httpx.Request(method, self.URL + path, **kwargs)
 		future = asyncio.Future()
@@ -53,6 +52,12 @@ async def create_api42(client_id: str, client_secret: str, *, loop: asyncio.Abst
 	return API42(client_id, client_secret, loop=loop)
 
 class Credential:
+	@staticmethod
+	async def _get_token(api: API42) -> dict:
+		raise NotImplementedError
+	@classmethod
+	async def create(cls, api: API42, *args, **kwds) -> 'ClientCredential':
+		return cls(api, **(await cls._get_token(api, *args, **kwds)))
 	def __init__(self, api: API42, access_token: str, token_type: str, expires_in: int, scope: str, created_at: int, secret_valid_until: int):
 		self._api = api
 		self._access_token = access_token
@@ -61,39 +66,45 @@ class Credential:
 		self._scope = scope
 		self._created_at = created_at
 		self._secret_valid_until = secret_valid_until
+		self._refresh_task = asyncio.create_task(self._refresh_worker())
+	def __del__(self):
+		self._refresh_task.cancel()
 	async def _refresh(self) -> None:
 		raise NotImplementedError
-	async def _get_token(self) -> str:
-		if time.time() >= self._created_at + self._expires_in:
-			await self._refresh()
-		return f"{self._token_type} {self._access_token}"
+	async def _refresh_worker(self) -> None:
+		try:
+			while True:
+				await asyncio.sleep(self._secret_valid_until - time.time() - 180)
+				await self._refresh()
+		except asyncio.CancelledError:
+			pass
 	async def _request(self, method: str, path: str, headers:dict = {}, **kwargs) -> httpx.Response:
-		headers["Authorization"] = await self._get_token()
+		headers["Authorization"] = f"{self._token_type} {self._access_token}"
 		return await self._api.request(method, path, headers=headers, **kwargs)
-	async def request(self, method: str, path: str, **kwargs) -> Any:
+	async def request(self, method: str, path: str, **kwargs) -> JsonType:
 		return (await self._request(method, path, **kwargs)).json()
-	async def get(self, path: str, query: dict = {}) -> Any:
+	async def get(self, path: str, query: dict = {}) -> JsonType:
 		return await self.request("GET", path, params=query)
 
 class ClientCredential(Credential):
 	def __init__(self, api: API42, access_token: str, token_type: str, expires_in: int, scope: str, created_at: int, secret_valid_until: int):
 		super().__init__(api, access_token, token_type, expires_in, scope, created_at, secret_valid_until)
-	@classmethod
-	async def create(cls, api: API42) -> 'ClientCredential':
+	@staticmethod
+	async def _get_token(api: API42) -> dict:
 		data = {
 			"grant_type": "client_credentials",
 			"client_id": api._client_id,
 			"client_secret": api._client_secret,
 		}
-		return cls(api, **(await api.request("POST", "/oauth/token", data=data)).json())
+		return (await api.request("POST", "/oauth/token", data=data)).json()
 	async def _refresh(self) -> None:
-		tmp = await ClientCredential.create(self._api)
-		self._access_token = tmp._access_token
-		self._token_type = tmp._token_type
-		self._expires_in = tmp._expires_in
-		self._scope = tmp._scope
-		self._created_at = tmp._created_at
-		self._secret_valid_until = tmp._secret_valid_until
+		tmp = await self._get_token(self._api)
+		self._access_token = tmp["access_token"]
+		self._token_type = tmp["token_type"]
+		self._expires_in = tmp["expires_in"]
+		self._scope = tmp["scope"]
+		self._created_at = tmp["created_at"]
+		self._secret_valid_until = tmp["secret_valid_until"]
 
 class UserCredential(Credential):
 	def __init__(self, api: 'API42', access_token: str, token_type: str, expires_in: int, scope: str, created_at: int, secret_valid_until: int, refresh_token: str):
@@ -133,24 +144,24 @@ class UserCredential(Credential):
 			server.should_exit = True
 			await server_task
 		return code
-	@classmethod
-	async def create(cls, api: 'API42', scope: str = "public projects profile elearning tig forum") -> 'UserCredential':
+	@staticmethod
+	async def _get_token(api: 'API42', scope: str = "public projects profile elearning tig forum") -> dict:
 		host = "localhost"
 		port = 4242
 		data = {
 			"grant_type": "authorization_code",
 			"client_id": api._client_id,
 			"client_secret": api._client_secret,
-			"code": await cls.get_code(api, scope, host, port),
+			"code": await UserCredential.get_code(api, scope, host, port),
 			"redirect_uri": f"http://{host}:{port}/",
 		}
-		return cls(api, **(await api.request("POST", "/oauth/token", data=data)).json())
+		return (await api.request("POST", "/oauth/token", data=data)).json()
 	async def _refresh(self) -> None:
 		data = {
 			"grant_type": "refresh_token",
 			"refresh_token": self._refresh_token,
 		}
-		tmp = await self._api.request("POST", "/oauth/token", data=data)
+		tmp = (await self._api.request("POST", "/oauth/token", data=data)).json()
 		self._access_token = tmp["access_token"]
 		self._token_type = tmp["token_type"]
 		self._expires_in = tmp["expires_in"]
