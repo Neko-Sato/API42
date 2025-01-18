@@ -66,19 +66,11 @@ class Credential:
 		self._scope = scope
 		self._created_at = created_at
 		self._secret_valid_until = secret_valid_until
-		self._refresh_task = asyncio.create_task(self._refresh_worker())
-	def __del__(self):
-		self._refresh_task.cancel()
-	async def _refresh(self) -> None:
+	async def refresh(self) -> None:
 		raise NotImplementedError
-	async def _refresh_worker(self) -> None:
-		try:
-			while True:
-				await asyncio.sleep(self._secret_valid_until - time.time() - 180)
-				await self._refresh()
-		except asyncio.CancelledError:
-			pass
 	async def _request(self, method: str, path: str, headers:dict = {}, **kwargs) -> httpx.Response:
+		if self._secret_valid_until - 180 < time.time():
+			await self.refresh()
 		headers["Authorization"] = f"{self._token_type} {self._access_token}"
 		return await self._api.request(method, path, headers=headers, **kwargs)
 	async def request(self, method: str, path: str, **kwargs) -> JsonType:
@@ -97,7 +89,7 @@ class ClientCredential(Credential):
 			"client_secret": api._client_secret,
 		}
 		return (await api.request("POST", "/oauth/token", data=data)).json()
-	async def _refresh(self) -> None:
+	async def refresh(self) -> None:
 		tmp = await self._get_token(self._api)
 		self._access_token = tmp["access_token"]
 		self._token_type = tmp["token_type"]
@@ -156,7 +148,7 @@ class UserCredential(Credential):
 			"redirect_uri": f"http://{host}:{port}/",
 		}
 		return (await api.request("POST", "/oauth/token", data=data)).json()
-	async def _refresh(self) -> None:
+	async def refresh(self) -> None:
 		data = {
 			"grant_type": "refresh_token",
 			"refresh_token": self._refresh_token,
