@@ -11,7 +11,7 @@ from .constants import \
 	CURSUS_42_CURSUS, \
 	PROJECTS_C_PISCINE
 
-from .AUTH42 import AUTH42, sigin_flow
+from .AUTH42 import AUTH42, signin_flow
 
 __all__ = [
 	"API42",
@@ -20,7 +20,7 @@ __all__ = [
 	"ClientCredential",
 	"make_api_flow",
 	"AUTH42",
-	"sigin_flow",
+	"signin_flow",
 	"CAMPUS_TOKYO",
 	"CURSUS_C_PISCINE",
 	"CURSUS_42_CURSUS",

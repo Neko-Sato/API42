@@ -83,7 +83,7 @@ class AUTH42:
 				elif res.status_code != 302:
 					raise Exception("Failed to signin (failed to authorize)")
 
-async def sigin_flow(client_id:str, redirect_uri:str, scope:str) -> str:
+async def signin_flow(client_id:str, redirect_uri:str, scope:str="public") -> str:
 	auth = AUTH42(client_id, redirect_uri, scope)
 	username = input("username: ")
 	password = getpass.getpass("password: ")
@@ -92,7 +92,7 @@ async def sigin_flow(client_id:str, redirect_uri:str, scope:str) -> str:
 
 async def main(client_id:str, redirect_uri:str, scope:str) -> None:
 	try:
-		code = await sigin_flow(client_id, redirect_uri, scope)
+		code = await signin_flow(client_id, redirect_uri, scope)
 		print(f"code: {code}")
 		return 0
 	except Exception as e:

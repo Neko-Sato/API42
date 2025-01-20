@@ -33,7 +33,8 @@ async def set_slots(user:API42.UserCredential, user_id:int, start:datetime, inte
 
 async def main(minutes:int, client_id:str=None, client_secret=None) -> int:
 	api = await API42.make_api_flow(client_id, client_secret)
-	user = await api.user_credential()
+	code = await API42.signin_flow(api._client_id, "http://localhost:4242/")
+	user:API42.UserCredential = await api.user_credential(code)
 	user_id = (await user.me())["id"]
 	now = datetime.now(ZoneInfo("Asia/Tokyo"))
 	minute = (ceil(now.minute / 15) + 2) * 15

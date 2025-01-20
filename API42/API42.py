@@ -4,7 +4,6 @@ import os
 import time
 import httpx
 import json
-from .AUTH42 import sigin_flow
 
 JsonType = dict[str, "JsonType"] | list["JsonType"] | str | int | float | bool | None
 
@@ -42,8 +41,8 @@ class API42:
 		return await future
 	async def client_credential(self) -> 'ClientCredential':
 		return await ClientCredential.create(self)
-	async def user_credential(self) -> 'UserCredential':
-		return await UserCredential.create(self)
+	async def user_credential(self, code:str) -> 'UserCredential':
+		return await UserCredential.create(self, code)
 
 async def create_api42(client_id: str, client_secret: str, *, loop: asyncio.AbstractEventLoop = None) -> API42:
 	return API42(client_id, client_secret, loop=loop)
@@ -103,13 +102,13 @@ class UserCredential(Credential):
 		super().__init__(api, access_token, token_type, expires_in, scope, created_at, secret_valid_until)
 		self._refresh_token = refresh_token
 	@staticmethod
-	async def _get_token(api: 'API42', scope: str = "public projects profile elearning tig forum") -> dict:
+	async def _get_token(api: 'API42', code:str) -> dict:
 		redirect_uri = "http://localhost:4242/"
 		data = {
 			"grant_type": "authorization_code",
 			"client_id": api._client_id,
 			"client_secret": api._client_secret,
-			"code": await sigin_flow(api._client_id, redirect_uri, scope),
+			"code": code,
 			"redirect_uri": redirect_uri,
 		}
 		return (await api.request("POST", "/oauth/token", data=data)).json()
