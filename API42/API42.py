@@ -1,13 +1,10 @@
 #!/usr/bin/python3
 import asyncio
-import uuid
 import os
 import time
 import httpx
-import uvicorn
-import fastapi
 from urllib.parse import urlparse, urlencode
-import webbrowser
+from .sigin42 import signin_flow
 
 JsonType = dict[str, "JsonType"] | list["JsonType"] | str | int | float | bool | None
 
@@ -103,49 +100,14 @@ class UserCredential(Credential):
 		super().__init__(api, access_token, token_type, expires_in, scope, created_at, secret_valid_until)
 		self._refresh_token = refresh_token
 	@staticmethod
-	async def get_code(api:'API42', scope:str, host:str, port:int) -> str:
-		app = fastapi.FastAPI()
-		_state = str(uuid.uuid4())
-		_code = asyncio.Future()
-		@app.get("/")
-		async def _(*, code: str, state: str):
-			res = "<script>window.close();</script>"
-			if state == _state:
-				_code.set_result(code)
-				res += "<h1>Success</h1>"
-			else:
-				_code.set_exception(Exception("Invalid state"))
-				res += "<h1>Failed</h1>"
-			return fastapi.Response(content=res, media_type="text/html")
-		config = uvicorn.Config(app, host=host, port=port)
-		server = uvicorn.Server(config)
-		server_task = asyncio.create_task(server.serve())
-		query = {
-			"client_id": api._client_id,
-			"redirect_uri": f"http://{host}:{port}/",
-			"response_type": "code",
-			"scope": scope,
-			"state": _state,
-			}
-		url = urlparse(f"{api.URL}/oauth/authorize")._replace(query=urlencode(query)).geturl()
-		print(url)
-		webbrowser.open_new(url)
-		try:
-			code = await _code
-		finally:
-			server.should_exit = True
-			await server_task
-		return code
-	@staticmethod
 	async def _get_token(api: 'API42', scope: str = "public projects profile elearning tig forum") -> dict:
-		host = "localhost"
-		port = 4242
+		redirect_uri = "http://localhost:4242/"
 		data = {
 			"grant_type": "authorization_code",
 			"client_id": api._client_id,
 			"client_secret": api._client_secret,
-			"code": await UserCredential.get_code(api, scope, host, port),
-			"redirect_uri": f"http://{host}:{port}/",
+			"code": await signin_flow(api._client_id, redirect_uri, scope),
+			"redirect_uri": redirect_uri,
 		}
 		return (await api.request("POST", "/oauth/token", data=data)).json()
 	async def refresh(self) -> None:

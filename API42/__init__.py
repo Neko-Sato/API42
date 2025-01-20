@@ -3,7 +3,7 @@ from .API42 import \
 	Credential, \
 	UserCredential, \
 	ClientCredential,\
-	 make_api_flow
+	make_api_flow
 
 from .constants import \
 	CAMPUS_TOKYO, \
@@ -11,12 +11,15 @@ from .constants import \
 	CURSUS_42_CURSUS, \
 	PROJECTS_C_PISCINE
 
+from .sigin42 import signin_flow
+
 __all__ = [
 	"API42",
 	"Credential",
 	"UserCredential",
 	"ClientCredential",
 	"make_api_flow",
+	"signin_flow",
 	"CAMPUS_TOKYO",
 	"CURSUS_C_PISCINE",
 	"CURSUS_42_CURSUS",
