@@ -3,8 +3,8 @@ import asyncio
 import os
 import time
 import httpx
-from urllib.parse import urlparse, urlencode
-from .sigin42 import signin_flow
+import json
+from .AUTH42 import sigin_flow
 
 JsonType = dict[str, "JsonType"] | list["JsonType"] | str | int | float | bool | None
 
@@ -95,6 +95,9 @@ class ClientCredential(Credential):
 		self._created_at = tmp["created_at"]
 		self._secret_valid_until = tmp["secret_valid_until"]
 
+class ReSignInRequiredError(Exception):
+	pass
+
 class UserCredential(Credential):
 	def __init__(self, api: 'API42', access_token: str, token_type: str, expires_in: int, scope: str, created_at: int, secret_valid_until: int, refresh_token: str):
 		super().__init__(api, access_token, token_type, expires_in, scope, created_at, secret_valid_until)
@@ -106,7 +109,7 @@ class UserCredential(Credential):
 			"grant_type": "authorization_code",
 			"client_id": api._client_id,
 			"client_secret": api._client_secret,
-			"code": await signin_flow(api._client_id, redirect_uri, scope),
+			"code": await sigin_flow(api._client_id, redirect_uri, scope),
 			"redirect_uri": redirect_uri,
 		}
 		return (await api.request("POST", "/oauth/token", data=data)).json()
@@ -115,7 +118,10 @@ class UserCredential(Credential):
 			"grant_type": "refresh_token",
 			"refresh_token": self._refresh_token,
 		}
-		tmp = (await self._api.request("POST", "/oauth/token", data=data)).json()
+		res = await self._api.request("POST", "/oauth/token", data=data)
+		if res.status_code // 100 != 2:
+			raise ReSignInRequiredError()
+		tmp = res.json()
 		self._access_token = tmp["access_token"]
 		self._token_type = tmp["token_type"]
 		self._expires_in = tmp["expires_in"]
@@ -125,6 +131,21 @@ class UserCredential(Credential):
 		self._refresh_token = tmp["refresh_token"]
 	async def me(self) -> dict:
 		return await self.get("/v2/me")
+	def save(self, filename:str) -> None:
+		data = {
+			"access_token": self._access_token,
+			"token_type": self._token_type,
+			"expires_in": self._expires_in,
+			"scope": self._scope,
+			"created_at": self._created_at,
+			"secret_valid_until": self._secret_valid_until,
+			"refresh_token": self._refresh_token,
+		}
+		json.dump(data, open(filename, "bw"))
+	@staticmethod
+	def load(api:API42, filename:str) -> 'UserCredential':
+		data = json.load(open(filename, "br"))
+		return UserCredential(api, **data)
 
 async def make_api_flow(client_id:str=None, client_secret:str=None) -> API42:
 	if client_id is None or client_secret is None:
