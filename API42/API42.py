@@ -140,10 +140,12 @@ class UserCredential(Credential):
 			"secret_valid_until": self._secret_valid_until,
 			"refresh_token": self._refresh_token,
 		}
-		json.dump(data, open(filename, "bw"))
+		with open(filename, "bw") as f:
+			json.dump(data, f)
 	@staticmethod
 	def load(api:API42, filename:str) -> 'UserCredential':
-		data = json.load(open(filename, "br"))
+		with open(filename, "br") as f:
+			data = json.load(f)
 		return UserCredential(api, **data)
 
 async def make_api_flow(client_id:str=None, client_secret:str=None) -> API42:
