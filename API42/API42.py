@@ -77,7 +77,6 @@ class UserCredential(ClientCredential):
 	def __init__(self, **kwds):
 		super().__init__(**kwds)
 		self._refresh_token:str = kwds["refresh_token"]
-		self
 	@staticmethod
 	async def create(api: 'API42', redirect_uri:str, username:str, password:str, *,
 			scope:list[str]|None=None, otp:None|str=None) -> 'UserCredential':
@@ -107,7 +106,6 @@ class UserCredential(ClientCredential):
 		self._created_at = tmp["created_at"]
 		self._secret_valid_until = tmp["secret_valid_until"]
 		self._refresh_token = tmp["refresh_token"]
-		self.save(api)
 	def save(self, filename:str) -> None:
 		with open(filename, "w", encoding="ascii") as f:
 			data = {
