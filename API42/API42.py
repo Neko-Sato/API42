@@ -125,6 +125,5 @@ class UserCredential(ClientCredential):
 		with open(filename, "r", encoding="ascii") as f:
 			data = json.load(f)
 		credential = UserCredential(**data)
-		if credential.need_refresh():
-			await credential.refresh(api)
+		await credential.refresh(api)
 		return credential
