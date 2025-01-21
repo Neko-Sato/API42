@@ -1,49 +1,49 @@
 #!/usr/bin/python3
 import asyncio
-from API42 import API42, Credential, make_api_flow, CURSUS_C_PISCINE, CURSUS_42_CURSUS
+from API42 import API42, Credential, ClientCredential, make_api_flow, CURSUS_C_PISCINE, CURSUS_42_CURSUS
 from utils import put_waiting
 from math import ceil
 import json
 
-async def get_level(credential:Credential, users:list[int], cursus:int) -> list:
+async def get_level(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
 	data = 	[(u["user"]["id"], u["level"]) for s in await asyncio.gather(*[
-			credential.get("/v2/cursus_users", {**query, "page[number]": i})
+			api.get(credential, "/v2/cursus_users", {**query, "page[number]": i})
 		for i in range(1, ceil(len(users) / 100) + 1)])
 		for u in s]
 	return data
 
-async def get_score(credential:Credential, users:list[int], cursus:int) -> list:
+async def get_score(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-this_year_score", "cursus_id": cursus, "page[size]": 100}
 	data = [(u["user_id"], u["score"]) for s in await asyncio.gather(*[
-			credential.get("/v2/coalitions_users", {**query, "page[number]": i})
+			api.get(credential, "/v2/coalitions_users", {**query, "page[number]": i})
 		for i in range(1, ceil(len(users) / 100) + 1)])
 		for u in s]
 	return data
 
-async def has_cursus(credential:Credential, users:list[int], cursus:int) -> list:
+async def has_cursus(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "cursus_id": cursus, "page[size]": 100}
 	data = 	[u["user"]["id"] for s in await asyncio.gather(*[
-			credential.get("/v2/cursus_users", {**query, "page[number]": i})
+			api.get(credential, "/v2/cursus_users", {**query, "page[number]": i})
 		for i in range(1, ceil(len(users) / 100) + 1)])
 		for u in s]
 	return {user: user in data for user in users}
 
-async def get_project_mark(credential:Credential, users:list[int], project:int) -> list:
+async def get_project_mark(api:API42, credential:Credential, users:list[int], project:int) -> list:
 	query = {"filter[user_id]": ",".join([str(user) for user in users]), "filter[marked]": "true", "filter[project_id]": project, "page[size]": 100}
 	data = 	{u["user"]["id"]:u["final_mark"] for s in await asyncio.gather(*[
-			credential.get("/v2/projects_users", {**query, "page[number]": i})
+			api.get(credential, "/v2/projects_users", {**query, "page[number]": i})
 		for i in range(1, ceil(len(users) / 100) + 1)])
 		for u in s}
 	return sorted(data.items(), key=lambda x: x[1], reverse=True)
 
 async def main(pisciners:dict[int, str], passed:bool, client_id:str=None, client_secret=None) -> int:
-	api:API42 = await make_api_flow(client_id, client_secret)
-	credential = await api.client_credential()
+	api:API42 = make_api_flow(client_id, client_secret)
+	credential = await ClientCredential.create(api)
 	is_passed, level_rank, score_rank = await put_waiting("Please wait", asyncio.gather(
-		has_cursus(credential, pisciners.keys(), CURSUS_42_CURSUS),
-		get_level(credential, pisciners.keys(), CURSUS_C_PISCINE),
-		get_score(credential, pisciners.keys(), CURSUS_C_PISCINE),
+		has_cursus(api, credential, pisciners.keys(), CURSUS_42_CURSUS),
+		get_level(api, credential, pisciners.keys(), CURSUS_C_PISCINE),
+		get_score(api, credential, pisciners.keys(), CURSUS_C_PISCINE),
 	))
 	with open("rank.txt", "w") as f:
 		f.write("level_rank\n")

@@ -1,16 +1,16 @@
 #!/usr/bin/python3
 import asyncio
-from API42 import API42, Credential, make_api_flow, CAMPUS_TOKYO
+from API42 import API42, Credential, ClientCredential, make_api_flow, CAMPUS_TOKYO
 from utils import put_waiting
 import calendar
 import json
 
-async def get_pisciners(api:API42, campus: int, year: int, month: int) -> dict[int, str]:
+async def get_pisciners(api:API42, credential:Credential, campus: int, year: int, month: int) -> dict[int, str]:
 	query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
 	users = {}
 	i = 1
 	while True:
-		tmp = {u["id"]: u["login"] for u in await api.get("/v2/users", {**query, "page[number]": i})}
+		tmp = {u["id"]: u["login"] for u in await api.get(credential, "/v2/users", {**query, "page[number]": i})}
 		users.update(tmp)
 		if len(tmp) < 100:
 			break
@@ -18,9 +18,9 @@ async def get_pisciners(api:API42, campus: int, year: int, month: int) -> dict[i
 	return users
 
 async def main(campus:int, year:int, month:int, client_id:str=None, client_secret=None) -> int:
-	api:API42 = await make_api_flow(client_id, client_secret)
-	credential:Credential = await api.client_credential()
-	data = await put_waiting("Getting pisciners", get_pisciners(credential, campus, year, month))
+	api:API42 = make_api_flow(client_id, client_secret)
+	credential:ClientCredential = await ClientCredential.create(api)
+	data = await put_waiting("Getting pisciners", get_pisciners(api, credential, campus, year, month))
 	with open(f"pisciners_{year}_{month}.json", "w") as f:
 		json.dump(data, f, indent=4)
 	return 0
