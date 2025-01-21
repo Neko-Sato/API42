@@ -21,7 +21,9 @@ class API42:
 				count = 0
 				while True:
 					try:
-						return await client.request(method, f"{self.URL}{path}", **kwds)
+						res = await client.request(method, self.URL + path, **kwds)
+						res.raise_for_status()
+						return res
 					except httpx.TimeoutException:
 						if count >= self.Retry:
 							raise

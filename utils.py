@@ -1,6 +1,7 @@
 from typing import Awaitable, TypeVar
 import asyncio
 import sys
+from itertools import islice
 
 T = TypeVar('T')
 
@@ -20,3 +21,8 @@ async def put_waiting(message:str, waitable:Awaitable[T]) -> T:
 	except asyncio.CancelledError:
 		task.cancel()
 	return await task
+
+def chunks(iterator, n):
+	it = iter(iterator)
+	while chunk := list(islice(it, n)):
+	    yield chunk

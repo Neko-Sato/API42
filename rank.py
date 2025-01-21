@@ -1,39 +1,39 @@
 #!/usr/bin/python3
 import asyncio
 from API42 import API42, Credential, ClientCredential, make_api_flow, CURSUS_C_PISCINE, CURSUS_42_CURSUS
-from utils import put_waiting
+from utils import put_waiting, chunks
 from math import ceil
 import json
 
 async def get_level(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
-	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-level", "cursus_id": cursus, "page[size]": 100}
+	query = {"sort":"-level", "cursus_id": cursus, "page[size]": 100, "page[number]": 1}
 	data = 	[(u["user"]["id"], u["level"]) for s in await asyncio.gather(*[
-			api.get(credential, "/v2/cursus_users", {**query, "page[number]": i})
-		for i in range(1, ceil(len(users) / 100) + 1)])
+			api.get(credential, "/v2/cursus_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
+		for user_list in chunks(users, 100)])
 		for u in s]
 	return data
 
 async def get_score(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
-	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"-this_year_score", "cursus_id": cursus, "page[size]": 100}
+	query = {"sort":"-this_year_score", "cursus_id": cursus, "page[size]": 100, "page[number]": 1}
 	data = [(u["user_id"], u["score"]) for s in await asyncio.gather(*[
-			api.get(credential, "/v2/coalitions_users", {**query, "page[number]": i})
-		for i in range(1, ceil(len(users) / 100) + 1)])
+			api.get(credential, "/v2/coalitions_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
+		for user_list in chunks(users, 100)])
 		for u in s]
 	return data
 
 async def has_cursus(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
-	query = {"filter[user_id]": ",".join([str(user) for user in users]), "cursus_id": cursus, "page[size]": 100}
+	query = {"cursus_id": cursus, "page[size]": 100, "page[number]": 1}
 	data = 	[u["user"]["id"] for s in await asyncio.gather(*[
-			api.get(credential, "/v2/cursus_users", {**query, "page[number]": i})
-		for i in range(1, ceil(len(users) / 100) + 1)])
+			api.get(credential, "/v2/cursus_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
+		for user_list in chunks(users, 100)])
 		for u in s]
 	return {user: user in data for user in users}
 
 async def get_project_mark(api:API42, credential:Credential, users:list[int], project:int) -> list:
-	query = {"filter[user_id]": ",".join([str(user) for user in users]), "filter[marked]": "true", "filter[project_id]": project, "page[size]": 100}
+	query = {"filter[marked]": "true", "filter[project_id]": project, "page[size]": 100, "page[number]": 1}
 	data = 	{u["user"]["id"]:u["final_mark"] for s in await asyncio.gather(*[
-			api.get(credential, "/v2/projects_users", {**query, "page[number]": i})
-		for i in range(1, ceil(len(users) / 100) + 1)])
+			api.get(credential, "/v2/projects_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
+		for user_list in chunks(users, 100)])
 		for u in s}
 	return sorted(data.items(), key=lambda x: x[1], reverse=True)
 
