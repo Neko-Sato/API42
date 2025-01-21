@@ -14,6 +14,7 @@ class InvalidCredentials(SignInError):
 
 class AUTH42:
 	URL = "https://api.intra.42.fr"
+	SCOPES = ["public", "projects", "profile", "elerning", "tig", "forum"]	
 	def __init__(self, client_id:str, redirect_uri:str, *, scope:list[str]|None=None):
 		self._client_id = client_id
 		self._redirect_uri = redirect_uri

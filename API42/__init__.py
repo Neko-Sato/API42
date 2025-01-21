@@ -3,7 +3,8 @@ from .API42 import \
 	API42, \
 	Credential, \
 	UserCredential, \
-	ClientCredential
+	ClientCredential, \
+	ReSignInRequiredError
 
 from .AUTH42 import AUTH42, SignInError, InvalidCredentials
 
@@ -16,6 +17,7 @@ __all__ = [
 	"Credential",
 	"UserCredential",
 	"ClientCredential",
+	"ReSignInRequiredError",
 	"AUTH42",
 	"SignInError",
 	"InvalidCredentials",

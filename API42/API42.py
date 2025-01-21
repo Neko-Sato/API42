@@ -32,7 +32,7 @@ class API42:
 			await credential.refresh(self)
 		headers["Authorization"] = f"{credential._token_type} {credential._access_token}"
 		return await self._request(method, path, headers=headers, **kwds)
-	async def get(self, credential:'Credential', path:str, query) -> JsonType:
+	async def get(self, credential:'Credential', path:str, query:dict={}) -> JsonType:
 		return (await self.request(credential, "GET", path, params=query)).json()
 						
 class Credential:
@@ -79,7 +79,8 @@ class UserCredential(ClientCredential):
 		super().__init__(**kwds)
 		self._refresh_token:str = kwds["refresh_token"]
 	@staticmethod
-	async def create(api: 'API42', redirect_uri:str, username:str, password:str, *, scope:list[str]|None=None, otp:None|str=None) -> 'UserCredential':
+	async def create(api: 'API42', redirect_uri:str, username:str, password:str, *,
+			scope:list[str]|None=None, otp:None|str=None) -> 'UserCredential':
 		auth = AUTH42(api._client_id, redirect_uri, scope=scope)
 		data = {
 			"grant_type": "authorization_code",
@@ -89,7 +90,9 @@ class UserCredential(ClientCredential):
 			"redirect_uri": redirect_uri,
 		}
 		res = await api._request("POST", "/oauth/token", data=data)
-		return UserCredential(**res.json())
+		credential = UserCredential(**res.json())
+		await credential.save(api)
+		return credential
 	async def refresh(self, api: API42) -> None:
 		data = {
 			"grant_type": "refresh_token",
@@ -106,23 +109,25 @@ class UserCredential(ClientCredential):
 		self._created_at = tmp["created_at"]
 		self._secret_valid_until = tmp["secret_valid_until"]
 		self._refresh_token = tmp["refresh_token"]
-	def save(self, filename:str) -> None:
-		data = {
-			"access_token": self._access_token,
-			"token_type": self._token_type,
-			"expires_in": self._expires_in,
-			"scope": self._scope,
-			"created_at": self._created_at,
-			"secret_valid_until": self._secret_valid_until,
-			"refresh_token": self._refresh_token,
-		}
-		with open(filename, "w", encoding="ascii") as f:
+		await self.save(api)
+	async def save(self, api:API42) -> None:
+		login = await api.request(self, "GET", "/v2/me")["login"]
+		with open(f"~/.42token_{login}", "w", encoding="ascii") as f:
+			data = {
+				"access_token": self._access_token,
+				"token_type": self._token_type,
+				"expires_in": self._expires_in,
+				"scope": self._scope,
+				"created_at": self._created_at,
+				"secret_valid_until": self._secret_valid_until,
+				"refresh_token": self._refresh_token,
+			}
 			json.dump(data, f)
 	@staticmethod
-	async def load(api:API42, filename:str) -> 'UserCredential':
-		with open(filename, "r", encoding="ascii") as f:
+	async def load(api:API42, login:str) -> 'UserCredential':
+		with open(f"~/.42token_{login}", "r", encoding="ascii") as f:
 			data = json.load(f)
 		credential = UserCredential(**data)
 		if credential.need_refresh():
-			await credential.refresh()
+			await credential.refresh(api)
 		return credential
