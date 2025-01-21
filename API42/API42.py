@@ -111,7 +111,7 @@ class UserCredential(ClientCredential):
 		self._refresh_token = tmp["refresh_token"]
 		await self.save(api)
 	async def save(self, api:API42) -> None:
-		login = await api.request(self, "GET", "/v2/me")["login"]
+		login = (await api.get(self, "/v2/me"))["login"]
 		with open(f"~/.42token_{login}", "w", encoding="ascii") as f:
 			data = {
 				"access_token": self._access_token,
