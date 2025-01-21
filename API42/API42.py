@@ -75,9 +75,9 @@ class ReSignInRequiredError(Exception):
 
 class UserCredential(ClientCredential):
 	def __init__(self, **kwds):
-		print(kwds)
 		super().__init__(**kwds)
 		self._refresh_token:str = kwds["refresh_token"]
+		self
 	@staticmethod
 	async def create(api: 'API42', redirect_uri:str, username:str, password:str, *,
 			scope:list[str]|None=None, otp:None|str=None) -> 'UserCredential':
@@ -90,9 +90,7 @@ class UserCredential(ClientCredential):
 			"redirect_uri": redirect_uri,
 		}
 		res = await api._request("POST", "/oauth/token", data=data)
-		credential = UserCredential(**res.json())
-		await credential.save(api)
-		return credential
+		return UserCredential(**res.json())
 	async def refresh(self, api: API42) -> None:
 		data = {
 			"grant_type": "refresh_token",
@@ -109,10 +107,9 @@ class UserCredential(ClientCredential):
 		self._created_at = tmp["created_at"]
 		self._secret_valid_until = tmp["secret_valid_until"]
 		self._refresh_token = tmp["refresh_token"]
-		await self.save(api)
-	async def save(self, api:API42) -> None:
-		login = (await api.get(self, "/v2/me"))["login"]
-		with open(f"~/.42token_{login}", "w", encoding="ascii") as f:
+		self.save(api)
+	def save(self, filename:str) -> None:
+		with open(filename, "w", encoding="ascii") as f:
 			data = {
 				"access_token": self._access_token,
 				"token_type": self._token_type,
@@ -124,8 +121,8 @@ class UserCredential(ClientCredential):
 			}
 			json.dump(data, f)
 	@staticmethod
-	async def load(api:API42, login:str) -> 'UserCredential':
-		with open(f"~/.42token_{login}", "r", encoding="ascii") as f:
+	async def load(api:API42, filename:str) -> 'UserCredential':
+		with open(filename, "r", encoding="ascii") as f:
 			data = json.load(f)
 		credential = UserCredential(**data)
 		if credential.need_refresh():
