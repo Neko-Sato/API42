@@ -9,24 +9,20 @@ from bs4 import BeautifulSoup, Tag
 class SignInError(Exception):
 	pass
 
-class InvalidCredentials(SignInError):
-	pass
-
 class AUTH42:
 	URL = "https://api.intra.42.fr"
-	SCOPES = ["public", "projects", "profile", "elerning", "tig", "forum"]	
-	def __init__(self, client_id:str, redirect_uri:str, *, scope:list[str]|None=None):
+	SCOPES = {"public", "projects", "profile", "elearning", "tig", "forum"}
+	def __init__(self, client_id:str, redirect_uri:str, *, scope:set[str]=set()):
 		self._client_id = client_id
 		self._redirect_uri = redirect_uri
-		self._scope = scope
+		self._scope = scope & self.SCOPES
 	def get_authorize_url(self, state:str) -> str:
 		query:dict[str, str] = {}
 		query["client_id"] = self._client_id
 		query["redirect_uri"] = self._redirect_uri
 		query["response_type"] = "code"
 		query["state"] = state
-		if self._scope is not None:
-			query["scope"] = " ".join(self._scope)
+		query["scope"] = " ".join(self._scope)
 		return urlparse(f"{self.URL}/oauth/authorize")._replace(query=urlencode(query)).geturl()
 	def _is_redirect_uri(self, url:str) -> bool:
 		tmp = urlparse(url)
@@ -38,13 +34,12 @@ class AUTH42:
 		url:str = self.get_authorize_url(state)
 		async with httpx.AsyncClient() as client:
 			res:httpx.Response = await client.get(url, follow_redirects=True)
-			if res.status_code != 200:
-				raise SignInError("hasn't got login page")
+			res.raise_for_status()
 			while True:
 				soup:Tag = BeautifulSoup(res.text, "html.parser")
 				form:Tag = soup.find("form")
 				if not form:
-					raise SignInError("hasn't got login form")
+					raise RuntimeError("hasn't got login form")
 				param = {}
 				for i in form.find_all("input", type=["text", "password", "hidden"]):
 					i:Tag
@@ -55,41 +50,43 @@ class AUTH42:
 						if i.attrs["name"] in info:
 							param[i.attrs["name"]] = info.pop(i.attrs["name"])
 						else:
-							raise InvalidCredentials()
+							raise SignInError()
 				res = await client.request(form.attrs["method"], form.attrs["action"], data=param, follow_redirects=False)
-				if res.status_code == 302:
+				if res.is_redirect:
 					break
-				elif res.status_code != 200:
-					raise SignInError("failed to login")
+				res.raise_for_status()
 			while True:
 				url = res.headers["Location"]
 				if self._is_redirect_uri(url):
 					query = parse_qs(urlparse(url).query)
 					if "code" in query and "state" in query:
 						if query["state"][0] != state:
-							raise SignInError("state mismatch")
+							raise RuntimeError("state mismatch")
 						return query["code"][0]
 				res = await client.get(url, follow_redirects=False)
-				if res.status_code == 200:
-					soup:Tag = BeautifulSoup(res.text, "html.parser")
-					form:Tag = soup.find("input", type="submit", value="Authorize")
-					if form:
-						form:Tag = form.find_parent("form")
-					if not form:
-						raise SignInError("hasn't got authorize form")
-					param = {}
-					for i in form.find_all("input", type=["hidden", "submit"]):
-						i:Tag
-						if "value" in i.attrs:
-							param[i.attrs["name"]] = i.attrs["value"]
-					url = urlunparse((res.url.scheme, res.url.host, form.attrs["action"], "", "", ""))
-					res = await client.request(form.attrs["method"], url, data=param, follow_redirects=False)
-					if res.status_code != 302:
-						raise SignInError("failed to authorize")
-				elif res.status_code != 302:
-					raise SignInError("failed to redirect")
+				if res.is_redirect:
+					continue
+				res.raise_for_status()
+				soup:Tag = BeautifulSoup(res.text, "html.parser")
+				form:Tag = soup.find("input", type="submit", value="Authorize")
+				if form is not None:
+					form:Tag = form.find_parent("form")
+				if form is None:
+					print(res.headers)
+					raise RuntimeError("Incorrect redirect_uri or scope")
+				param = {}
+				for i in form.find_all("input", type=["hidden", "submit"]):
+					i:Tag
+					if "value" in i.attrs:
+						param[i.attrs["name"]] = i.attrs["value"]
+				url = urlunparse((res.url.scheme, res.url.host, form.attrs["action"], "", "", ""))
+				res = await client.request(form.attrs["method"], url, data=param, follow_redirects=False)
+				if res.is_redirect:
+					continue
+				res.raise_for_status()
+				raise RuntimeError("Unknown error")
 
-async def main(client_id, redirect_uri, scope) -> int:
+async def main(client_id:str, redirect_uri:str, scope:set[str]) -> int:
 	auth = AUTH42(client_id, redirect_uri, scope=scope)
 	username = input("Username: ")
 	password = getpass.getpass("Password: ")
@@ -111,4 +108,4 @@ if __name__ == "__main__":
 	parser.add_argument("--scope", type=str, nargs="+")
 	args = parser.parse_args()
 
-	exit(asyncio.run(main(args.client_id, args.redirect_uri, args.scope)))
+	exit(asyncio.run(main(args.client_id, args.redirect_uri, set(args.scope))))

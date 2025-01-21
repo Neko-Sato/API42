@@ -81,7 +81,7 @@ class UserCredential(ClientCredential):
 		self._refresh_token:str = kwds["refresh_token"]
 	@staticmethod
 	async def create(api: 'API42', redirect_uri:str, username:str, password:str, *,
-			scope:list[str]|None=None, otp:None|str=None) -> 'UserCredential':
+			scope:set[str]=set(), otp:None|str=None) -> 'UserCredential':
 		auth = AUTH42(api._client_id, redirect_uri, scope=scope)
 		data = {
 			"grant_type": "authorization_code",

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import os
-from API42 import API42, UserCredential, InvalidCredentials
+from API42 import API42, UserCredential, SignInError
 import getpass
 
 def make_api_flow(client_id:str|None=None, client_secret:str|None=None) -> API42:
@@ -14,7 +14,7 @@ def make_api_flow(client_id:str|None=None, client_secret:str|None=None) -> API42
 			input("client_secret: ")
 	return API42(client_id, client_secret)
 
-async def make_user_credential(api: API42, redirect_uri:str|None=None, *, scope: list[str] | None = None) -> UserCredential:
+async def make_user_credential(api: API42, redirect_uri:str|None=None, *, scope: set[str]={}) -> UserCredential:
 	if redirect_uri is None:
 		redirect_uri = os.getenv("API42_REDIRECT_URI", None)
 	if redirect_uri is None:
@@ -25,5 +25,5 @@ async def make_user_credential(api: API42, redirect_uri:str|None=None, *, scope:
 			password = getpass.getpass("Password: ")
 			otp = input("OTP (or press Enter to skip): ") or None
 			return await UserCredential.create(api, redirect_uri, username, password, otp=otp, scope=scope)
-		except InvalidCredentials:
+		except SignInError:
 			print("retry...")

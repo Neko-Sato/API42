@@ -1,8 +1,7 @@
 #!/usr/bin/python3
 import asyncio
 from API42 import API42, Credential, ClientCredential, make_api_flow, CURSUS_C_PISCINE
-from utils import put_waiting
-from math import ceil
+from utils import put_waiting, chunks
 
 #
 # Output active PISCINER in decreasing rank order.
@@ -10,18 +9,18 @@ from math import ceil
 #
 
 async def get_level(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
-	query = {"filter[user_id]": ",".join([str(user) for user in users]), "sort":"level", "cursus_id": cursus, "page[size]": 100}
+	query = {"sort":"level", "cursus_id": cursus, "page[size]": 100, "page[number]": 1}
 	data = 	[(u["user"]["id"], u["level"]) for s in await asyncio.gather(*[
-			api.get(credential, "/v2/cursus_users", {**query, "page[number]": i})
-		for i in range(1, ceil(len(users) / 100) + 1)])
+			api.get(credential, "/v2/cursus_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
+		for user_list in chunks(users, 100)])
 		for u in s]
 	return data
 
 async def get_location(api:API42, credential:Credential, users:list[int]) -> dict:
-	query = {"filter[user_id]": ",".join([str(user) for user in users]), "filter[active]":"true", "page[size]": 100}
+	query = {"filter[active]":"true", "page[size]": 100, "page[number]": 1}
 	data = 	{u["user"]["id"]: u["host"] for s in await asyncio.gather(*[
-			api.get(credential, "/v2/locations", {**query, "page[number]": i})
-		for i in range(1, ceil(len(users) / 100) + 1)])
+			api.get(credential, "/v2/locations", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
+		for user_list in chunks(users, 100)])
 		for u in s}
 	return data
 

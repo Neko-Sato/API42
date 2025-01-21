@@ -6,7 +6,7 @@ from .API42 import \
 	ClientCredential, \
 	ReSignInRequiredError
 
-from .AUTH42 import AUTH42, SignInError, InvalidCredentials
+from .AUTH42 import AUTH42, SignInError
 
 from .interactive import make_api_flow, make_user_credential
 
@@ -20,7 +20,6 @@ __all__ = [
 	"ReSignInRequiredError",
 	"AUTH42",
 	"SignInError",
-	"InvalidCredentials",
 	"make_api_flow",
 	"make_user_credential"
 	"CAMPUS_TOKYO",

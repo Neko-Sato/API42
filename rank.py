@@ -2,7 +2,6 @@
 import asyncio
 from API42 import API42, Credential, ClientCredential, make_api_flow, CURSUS_C_PISCINE, CURSUS_42_CURSUS
 from utils import put_waiting, chunks
-from math import ceil
 import json
 
 async def get_level(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
@@ -11,7 +10,7 @@ async def get_level(api:API42, credential:Credential, users:list[int], cursus:in
 			api.get(credential, "/v2/cursus_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
 		for user_list in chunks(users, 100)])
 		for u in s]
-	return data
+	return sorted(data, key=lambda x: x[1], reverse=True)
 
 async def get_score(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
 	query = {"sort":"-this_year_score", "cursus_id": cursus, "page[size]": 100, "page[number]": 1}
@@ -19,7 +18,7 @@ async def get_score(api:API42, credential:Credential, users:list[int], cursus:in
 			api.get(credential, "/v2/coalitions_users", {**query, "filter[user_id]": ",".join([str(user) for user in user_list])})
 		for user_list in chunks(users, 100)])
 		for u in s]
-	return data
+	return sorted(data, key=lambda x: x[1], reverse=True)
 
 async def has_cursus(api:API42, credential:Credential, users:list[int], cursus:int) -> list:
 	query = {"cursus_id": cursus, "page[size]": 100, "page[number]": 1}
