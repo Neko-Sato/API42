@@ -21,7 +21,7 @@ __all__ = [
 	"AUTH42",
 	"SignInError",
 	"make_api_flow",
-	"make_user_credential"
+	"make_user_credential",
 	"CAMPUS_TOKYO",
 	"CURSUS_C_PISCINE",
 	"CURSUS_42_CURSUS",
