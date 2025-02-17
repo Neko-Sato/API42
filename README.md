@@ -27,4 +27,12 @@ export API42_CLIENT_SECRET=[YOUR_CLIENT_SECRET]
 cat rank.txt
 ```
 
+(Additional Note)
+At first, I thought this would help understand the state of pisciners.
+However, in the first week, everyone was at level 0, so there was no visible difference.
+Moreover, pisciners are active, and the existing events are sufficient for communication-based support. Those who struggle even with that are not suited for attending 42 School.
+
+A more effective use of this would be to present examples of past pisciners in a way that is easier to view and compare than on the intranet.
+To prevent pisciners from feeling hopeless due to the gap with the top tier, as long as their current situation is not too bad, we can convince them that the evaluation criteria are unclear but that they might still pass.
+
 42 profile: https://profile.intra.42.fr/users/hshimizu
