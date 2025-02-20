@@ -2,7 +2,6 @@
 import asyncio
 from API42 import API42, Credential, ClientCredential, make_api_flow, CAMPUS_TOKYO, CURSUS_42_CURSUS
 from utils import put_waiting
-import json
 
 async def get_rank_correction_point(api:API42, credential:Credential, campus: int) -> list[tuple[str, int]]:
 	query = {"campus_id": campus, "cursus_id": CURSUS_42_CURSUS, "filter[kind]": "student", "page[size]": 100}
@@ -28,10 +27,8 @@ async def main(campus:int, client_id:str=None, client_secret=None) -> int:
 
 if __name__ == "__main__":
 	import argparse
-	from datetime import datetime
 
 	parser = argparse.ArgumentParser()
-	now = datetime.now()
 	parser.add_argument("-c", "--campus", type=int, default=CAMPUS_TOKYO)
 	parser.add_argument("--client_id", type=str, default=None)
 	parser.add_argument("--client_secret", type=str, default=None)
