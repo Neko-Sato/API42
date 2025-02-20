@@ -20,7 +20,7 @@ async def main(campus:int, client_id:str=None, client_secret=None) -> int:
 	api:API42 = make_api_flow(client_id, client_secret)
 	credential:ClientCredential = await ClientCredential.create(api)
 	data = await get_rank_correction_point(api, credential, campus)
-	with open(f"rank_correction_point.json", "w") as f:
+	with open(f"rank_correction_point.txt", "w") as f:
 		for user in data:
 			f.write(f"{user[0]:20}: {user[1]}\n")
 	return 0
