@@ -36,7 +36,7 @@ A more effective use of this would be to present examples of past pisciners in a
 To prevent pisciners from feeling hopeless due to the gap with the top tier, as long as their current situation is not too bad, we can convince them that the evaluation criteria are unclear but that they might still pass.
 
 （2025/03/01）
-I got fired from 42tokyo's lifesaver. It is very sad. But they need to respect their ideas. I am convinced of it. Everyone would have thought it was a bit terrible. It can't be helped. I hope all pisciner swim and be with us.
+I got fired from 42tokyo's lifesaver. It is very sad. But they need to respect their ideas. I am convinced of it. Everyone would have thought it was a bit terrible. It can't be helped. I hope all pisciner swim through and be one of us.
 
 
 42 profile: https://profile.intra.42.fr/users/hshimizu
