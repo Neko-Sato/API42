@@ -4,6 +4,9 @@ from API42 import API42, Credential, ClientCredential, make_api_flow, CAMPUS_TOK
 from utils import put_waiting
 import calendar
 import json
+import os
+
+DIR = "./pisciners"
 
 async def get_pisciners(api:API42, credential:Credential, campus: int, year: int, month: int) -> dict[int, str]:
 	query = {"campus_id": campus, "filter[pool_month]": calendar.month_name[month].lower(), "filter[pool_year]": year, "page[size]": 100}
@@ -21,7 +24,9 @@ async def main(campus:int, year:int, month:int, client_id:str=None, client_secre
 	api:API42 = make_api_flow(client_id, client_secret)
 	credential:ClientCredential = await ClientCredential.create(api)
 	data = await put_waiting("Getting pisciners", get_pisciners(api, credential, campus, year, month))
-	with open(f"pisciners_{year}_{month}.json", "w") as f:
+	if not os.path.exists(DIR):
+		os.makedirs(DIR)
+	with open(DIR + f"/{year}_{month}.json", "w") as f:
 		json.dump(data, f, indent=4)
 	return 0
 

@@ -45,7 +45,7 @@ if __name__ == "__main__":
 	args = parser.parse_args()
 	try:
 		now = datetime.now()
-		with open(f"pisciners_{now.year}_{now.month}.json", "r") as f:
+		with open(f"./pisciners/{now.year}_{now.month}.json", "r") as f:
 			pisciners = {int(k):v for k, v in json.load(f).items()}
 		status = asyncio.run(main(pisciners, args.cursus, args.client_id, args.client_secret))
 	except FileNotFoundError:
