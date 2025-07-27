@@ -1,6 +1,6 @@
 #!/usr/bin/python3
-import os
 from API42 import API42, UserCredential, SignInError
+import os
 import getpass
 
 def make_api_flow(client_id:str|None=None, client_secret:str|None=None) -> API42:
@@ -9,16 +9,16 @@ def make_api_flow(client_id:str|None=None, client_secret:str|None=None) -> API42
 		client_secret = os.getenv("API42_CLIENT_SECRET", None)
 	if client_id is None or client_secret is None:
 		if client_id is None:
-			input("client_id: ")
+			client_id = input("client_id: ")
 		if client_secret is None:
-			input("client_secret: ")
+			client_secret = input("client_secret: ")
 	return API42(client_id, client_secret)
 
-async def make_user_credential(api: API42, redirect_uri:str|None=None, *, scope: set[str]={}) -> UserCredential:
+async def make_user_credential(api: API42, redirect_uri:str|None=None, *, scope: set[str]=set()) -> UserCredential:
 	if redirect_uri is None:
 		redirect_uri = os.getenv("API42_REDIRECT_URI", None)
 	if redirect_uri is None:
-		input("redirect_uri: ")
+		redirect_uri = input("redirect_uri: ")
 	while True:
 		try:
 			username = input("Username: ")

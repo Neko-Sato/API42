@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+from enum import Enum
 
 CAMPUS_TOKYO = 26
 
@@ -6,7 +7,7 @@ CURSUS_C_PISCINE = 9
 
 CURSUS_42_CURSUS = 21
 
-class PROJECTS_C_PISCINE:
+class PROJECTS_C_PISCINE(Enum):
 	shell_00 = 1255
 	shell_01 = 1256
 	c_12 = 1268
@@ -31,4 +32,3 @@ class PROJECTS_C_PISCINE:
 	exam_02 = 1303
 	exam_01 = 1302
 	exam_00 = 1301
-	

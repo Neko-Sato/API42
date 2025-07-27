@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 from typing import TextIO
 import asyncio
-from API42 import *
+from ..API42 import *
 from utils import put_waiting, chunks
 import json
 

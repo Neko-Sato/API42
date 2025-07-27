@@ -3,8 +3,8 @@ import re
 import argparse
 import os
 
-HEADER_PATTERN = re.compile(r'^.?[*#= -]{5,}$')
-TARGET_EXTENSIONS = {'.c', '.h'}
+HEADER_PATTERN = re.compile(r'^\s*[#/*\-=\\]{5,}\s*$')
+TARGET_EXTENSIONS = {'.c', '.h', '.cpp', '.hpp'}
 MAKEFILE_NAMES = {'makefile', 'Makefile'}
 
 def checker(file_path: str, allowed: set[str]):
