@@ -9,3 +9,6 @@ dependencies = [
   "httpx",
   "beautifulsoup4"
 ]
+
+[tool.setuptools]
+packages = ["API42"]

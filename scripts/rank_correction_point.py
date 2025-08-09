@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import asyncio
-from ..API42 import API42, Credential, ClientCredential, make_api_flow, CAMPUS_TOKYO, CURSUS_42_CURSUS
+from API42 import API42, Credential, ClientCredential, make_api_flow, CAMPUS_TOKYO, CURSUS_42_CURSUS
 from utils import put_waiting
 
 async def get_rank_correction_point(api:API42, credential:Credential, campus: int) -> list[tuple[str, int]]:

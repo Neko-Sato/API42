@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 import asyncio
-from ..API42 import API42, Credential, ClientCredential, make_api_flow
+from API42 import API42, Credential, ClientCredential, make_api_flow
 import json
 from utils import put_waiting
 from math import ceil

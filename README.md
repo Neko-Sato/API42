@@ -20,6 +20,7 @@ Let's help them enjoy piscine without rushing too much.
 git clone https://github.com/Neko-Sato/API42.git
 cd API42
 python3 -m venv venv
+./venv/bin/pip install -U pip
 ./venv/bin/pip install .
 export API42_CLIENT_ID=[YOUR_CLIENT_ID]
 export API42_CLIENT_SECRET=[YOUR_CLIENT_SECRET]
