@@ -43,12 +43,10 @@ class API42Client(AsyncOAuth2Client):
         uri, state = self.create_authorization_url()
         return await get_authorization_code(uri, state, self.redirect_uri)
 
-    async def fetch_token(self) -> dict:
-        return await super().fetch_token()
-
-    async def fetch_token_with_auth_flow(self) -> dict:
-        code = await self.get_authorization_code()
-        token = await super().fetch_token(code=code)
+    async def fetch_token(self, *args, **kwds) -> dict:
+        token = await super().fetch_token(*args, **kwds)
+        if self.update_token is not None:
+            self.update_token(token)
         return token
 
     async def send(self, *args, **kwds) -> httpx.Response:
