@@ -57,24 +57,32 @@ class UserAPI42Client(API42Client):
     TOKEN_PATH = Path("~/.api42/token.json").expanduser()
 
     async def _update_token(self, token, refresh_token=None, access_token=None):
+        data = {}
+        if self.TOKEN_PATH.exists():
+            try:
+                with open(self.TOKEN_PATH, "r") as f:
+                    data = json.load(f)
+            except:
+                pass
         self.TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
+        data[self.client_id] = token
         with open(self.TOKEN_PATH, "w") as f:
-            json.dump(token, f)
+            json.dump(data, f)
 
     @classmethod
     async def create(cls, client_id: str, client_secret: str, redirect_uri: str, scope: set[str] = {"public"}):
         client = cls(client_id, client_secret, redirect_uri)
         scope = scope & cls.SCOPES
         if cls.TOKEN_PATH.exists():
-            with open(cls.TOKEN_PATH, "r") as f:
-                token = json.load(f)
-            if set(token["scope"].split(" ")) >= scope:
-                client.token = token
-                try:
+            try:
+                with open(cls.TOKEN_PATH, "r") as f:
+                    token = json.load(f)[client_id]
+                if set(token["scope"].split(" ")) >= scope:
+                    client.token = token
                     await client.refresh_token()
                     return client
-                except:
-                    pass
+            except:
+                pass
         uri, state = client.create_authorization_url(
             "/oauth/authorize", scope=" ".join(scope))
         uri = urljoin(cls.URL, uri)
