@@ -51,7 +51,8 @@ async def main(campus: int, pools: list[tuple[int, int]], client_id: str = None,
     if client_id is None or client_secret is None:
         print("client_id and client_secret are required")
         return 1
-    client: API42Client = await API42Client.create(client_id, client_secret)
+    client: API42Client = API42Client(client_id, client_secret, None)
+    await client.fetch_token()
     directory = Path("./pisciners")
     directory.mkdir(exist_ok=True)
     tmp = await asyncio.gather(*[get_pisciners(client, campus, year, month) for year, month in pools])

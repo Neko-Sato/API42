@@ -128,7 +128,8 @@ async def main(
         print("client_id and client_secret are required")
         return 1
 
-    client: API42Client = await API42Client.create(client_id, client_secret)
+    client: API42Client = API42Client(client_id, client_secret, None)
+    await client.fetch_token()
     user_ids = list(pisciners.keys())
 
     tasks = {}

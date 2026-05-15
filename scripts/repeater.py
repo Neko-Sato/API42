@@ -49,7 +49,8 @@ async def main(pisciners: dict[int, str], client_id: str = None, client_secret=N
         print("client_id and client_secret are required")
         return 1
 
-    client = await API42Client.create(client_id, client_secret)
+    client: API42Client = API42Client(client_id, client_secret, None)
+    await client.fetch_token()
     names = await get_names(client, list(pisciners.keys()))
     await get_repeater(client, names)
     return 0

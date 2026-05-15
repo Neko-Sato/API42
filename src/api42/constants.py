@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 from enum import Enum
 
+SCOPES = {"public", "projects", "profile", "elearning", "tig", "forum"}
+
 CAMPUS_TOKYO = 26
 
 CURSUS_C_PISCINE = 9

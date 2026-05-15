@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 import asyncio
-import json
 from authlib.integrations.httpx_client import AsyncOAuth2Client
 import httpx
 from urllib.parse import urljoin
-from pathlib import Path
 from .auth import get_authorization_code
+from .constants import SCOPES
 
 
 class API42Client(AsyncOAuth2Client):
@@ -18,8 +17,12 @@ class API42Client(AsyncOAuth2Client):
         client_id: str,
         client_secret: str,
         redirect_uri: str,
+        scope: set[str] | None = None,
+        update_token=None,
     ):
         self.sem = asyncio.Semaphore(self.CONCURRENCY)
+        if scope is not None:
+            scope = scope & SCOPES
         AsyncOAuth2Client.__init__(
             self,
             base_url=self.URL,
@@ -27,11 +30,26 @@ class API42Client(AsyncOAuth2Client):
             client_secret=client_secret,
             redirect_uri=redirect_uri,
             token_endpoint="/oauth/token",
-            update_token=self._update_token,
+            update_token=update_token,
+            scope=scope,
         )
 
-    async def _update_token(self, token, refresh_token=None, access_token=None):
-        pass
+    def create_authorization_url(self) -> tuple[str, str]:
+        uri, state = super().create_authorization_url("/oauth/authorize")
+        uri = urljoin(self.URL, uri)
+        return uri, state
+
+    async def get_authorization_code(self) -> str:
+        uri, state = self.create_authorization_url()
+        return await get_authorization_code(uri, state, self.redirect_uri)
+
+    async def fetch_token(self) -> dict:
+        return await super().fetch_token()
+
+    async def fetch_token_with_auth_flow(self) -> dict:
+        code = await self.get_authorization_code()
+        token = await super().fetch_token(code=code)
+        return token
 
     async def send(self, *args, **kwds) -> httpx.Response:
         async with self.sem:
@@ -44,51 +62,3 @@ class API42Client(AsyncOAuth2Client):
                     return res
                 except httpx.TimeoutException:
                     await asyncio.sleep(self.DELAY)
-
-    @classmethod
-    async def create(cls, client_id: str, client_secret: str):
-        client = cls(client_id, client_secret, None)
-        await client.fetch_token()
-        return client
-
-
-class UserAPI42Client(API42Client):
-    SCOPES = {"public", "projects", "profile", "elearning", "tig", "forum"}
-    TOKEN_PATH = Path("~/.api42/token.json").expanduser()
-
-    async def _update_token(self, token, refresh_token=None, access_token=None):
-        data = {}
-        if self.TOKEN_PATH.exists():
-            try:
-                with open(self.TOKEN_PATH, "r") as f:
-                    data = json.load(f)
-            except:
-                pass
-        self.TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-        data[self.client_id] = token
-        with open(self.TOKEN_PATH, "w") as f:
-            json.dump(data, f)
-
-    @classmethod
-    async def create(cls, client_id: str, client_secret: str, redirect_uri: str, scope: set[str] = {"public"}):
-        client = cls(client_id, client_secret, redirect_uri)
-        scope = scope & cls.SCOPES
-        if cls.TOKEN_PATH.exists():
-            try:
-                with open(cls.TOKEN_PATH, "r") as f:
-                    token = json.load(f)[client_id]
-                if set(token["scope"].split(" ")) >= scope:
-                    client.token = token
-                    await client.refresh_token()
-                    return client
-            except:
-                pass
-        uri, state = client.create_authorization_url(
-            "/oauth/authorize", scope=" ".join(scope))
-        uri = urljoin(cls.URL, uri)
-        token = await client.fetch_token(
-            grant_type="authorization_code",
-            code=await get_authorization_code(uri, state, redirect_uri),
-        )
-        await client._update_token(token)
-        return client

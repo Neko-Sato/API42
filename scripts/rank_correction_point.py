@@ -48,7 +48,8 @@ async def main(campus: int | None, output: TextIO, client_id: str = None, client
         print("client_id and client_secret are required")
         return 1
 
-    client: API42Client = await API42Client.create(client_id, client_secret)
+    client: API42Client = API42Client(client_id, client_secret, None)
+    await client.fetch_token()
     data = await get_rank_correction_point(client, campus)
     output.truncate(0)
     output.seek(0)
