@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 from enum import Enum
 
 CAMPUS_TOKYO = 26
@@ -32,3 +32,6 @@ class PROJECTS_C_PISCINE(Enum):
 	exam_02 = 1303
 	exam_01 = 1302
 	exam_00 = 1301
+
+	def __str__(self):
+		return super().__str__().split(".")[1]
